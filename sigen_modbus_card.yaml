@@ -1,0 +1,1208 @@
+type: custom:button-card
+show_state: true
+tap_action: none
+custom_fields:
+  home_image:
+    card:
+      type: picture
+      image: local/Sigenergy/bg_villa_pv.png
+      card_mod:
+        style: |
+          ha-card {
+            background-color: transparent;
+            border: none;
+          }
+  ac_charger:
+    card:
+      type: picture
+      image: local/Sigenergy/ac_charger_bg.png
+      card_mod:
+        style: |
+          ha-card {
+            background-color: transparent;
+            border: none;
+          }
+  sigenstor:
+    card:
+      type: picture
+      image: local/Sigenergy/bg_sigenstor.png
+      card_mod:
+        style: |
+          ha-card {
+            background-color: transparent;
+            border: none;
+          }
+  gateway:
+    card:
+      type: picture
+      image: local/Sigenergy/bg_gateway.png
+      card_mod:
+        style: |
+          ha-card {
+            background-color: transparent;
+            border: none;
+          }
+  pv_power:
+    card:
+      type: custom:mushroom-template-card
+      primary: >
+        {% set pv_power = states('sensor.sigen_plant_pv_power') | round(1) %}
+        {% if pv_power > 0 %}
+          {{ pv_power }}kW
+        {% else %}
+          0kW
+        {% endif %}
+      secondary: SOLAR
+      multiline_secondary: false
+      fill_container: false
+      card_mod:
+        style:
+          mushroom-state-info$: |
+            .primary {
+              font-size: 14px !important;
+              font-weight: bold !important;
+              position: relative;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              overflow: visible !important;
+              text-align: left;
+            }
+            .secondary {
+              font-size: 10px !important;
+              color: gray !important;
+              position: relative;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              overflow: visible !important;
+              text-align: left;
+            }
+          .: |
+            ha-card {
+              background-color: transparent;
+              border: none;
+            }
+  load_power:
+    card:
+      type: custom:mushroom-template-card
+      primary: "{{states('sensor.sigen_plant_consumed_power') | round(1) }}kW"
+      secondary: HOME
+      multiline_secondary: false
+      fill_container: false
+      card_mod:
+        style:
+          mushroom-state-info$: |
+            .primary {
+              font-size: 14px !important;
+              font-weight: bold !important;
+              position: relative;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              overflow: visible !important;
+              text-align: left;
+            }
+            .secondary {
+              font-size: 10px !important;
+              color: gray !important;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              position: relative;
+              overflow: visible !important;
+              text-align: left;
+            }
+          .: |
+            ha-card {
+              background-color: transparent;
+              border: none;
+            }
+  ac_power:
+    card:
+      type: custom:mushroom-template-card
+      primary: "{{ (states('sensor.ac') | float / 1000) | round(1) }}kW"
+      secondary: AC
+      multiline_secondary: false
+      fill_container: false
+      card_mod:
+        style:
+          mushroom-state-info$: |
+            .primary {
+              font-size: 14px !important;
+              font-weight: bold !important;
+              position: relative;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              overflow: visible !important;
+              text-align: left;
+            }
+            .secondary {
+              font-size: 10px !important;
+              color: gray !important;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              position: relative;
+              overflow: visible !important;
+              text-align: left;
+            }
+          .: |
+            ha-card {
+              background-color: transparent;
+              border: none;
+            }
+  sub_power:
+    card:
+      type: custom:mushroom-template-card
+      primary: "{{ (states('sensor.sub') | float / 1000) | round(1) }}kW"
+      secondary: Sub
+      multiline_secondary: false
+      fill_container: false
+      card_mod:
+        style:
+          mushroom-state-info$: |
+            .primary {
+              font-size: 14px !important;
+              font-weight: bold !important;
+              position: relative;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              overflow: visible !important;
+              text-align: left;
+            }
+            .secondary {
+              font-size: 10px !important;
+              color: gray !important;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              position: relative;
+              overflow: visible !important;
+              text-align: left;
+            }
+          .: |
+            ha-card {
+              background-color: transparent;
+              border: none;
+            }
+  pool_power:
+    card:
+      type: custom:mushroom-template-card
+      primary: "{{ (states('sensor.pool') | float / 1000) | round(1) }}kW"
+      secondary: Pool
+      multiline_secondary: false
+      fill_container: false
+      card_mod:
+        style:
+          mushroom-state-info$: |
+            .primary {
+              font-size: 14px !important;
+              font-weight: bold !important;
+              position: relative;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              overflow: visible !important;
+              text-align: left;
+            }
+            .secondary {
+              font-size: 10px !important;
+              color: gray !important;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              position: relative;
+              overflow: visible !important;
+              text-align: left;
+            }
+          .: |
+            ha-card {
+              background-color: transparent;
+              border: none;
+            }
+  hws_power:
+    card:
+      type: custom:mushroom-template-card
+      primary: >-
+        {{ (states('sensor.shellyplus1pm_hotwater_switch_0_power') | float / 1000) | round(1) }}kW
+      secondary: HWS
+      multiline_secondary: false
+      fill_container: false
+      card_mod:
+        style:
+          mushroom-state-info$: |
+            .primary {
+              font-size: 14px !important;
+              font-weight: bold !important;
+              position: relative;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              overflow: visible !important;
+              text-align: left;
+            }
+            .secondary {
+              font-size: 10px !important;
+              color: gray !important;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              position: relative;
+              overflow: visible !important;
+              text-align: left;
+            }
+          .: |
+            ha-card {
+              background-color: transparent;
+              border: none;
+            }
+  grid_power:
+    card:
+      type: custom:mushroom-template-card
+      primary: >
+        {% set import = states('sensor.sigen_plant_grid_import_power') | round(1) %}
+        {% set export = states('sensor.sigen_plant_grid_export_power') | round(1) %}
+        {% if import > 0 %}
+          {{ import }}kW
+        {% elif export > 0 %}
+          {{ -export }}kW
+        {% else %}
+          0kW
+        {% endif %}
+      secondary: |
+        GRID
+      multiline_secondary: false
+      fill_container: false
+      card_mod:
+        style:
+          mushroom-state-info$: |
+            .primary {
+              font-size: 14px !important;
+              font-weight: bold !important;
+              position: relative;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              overflow: visible !important;
+              text-align: left;
+            }
+            .secondary {
+              font-size: 10px !important;
+              color: gray !important;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              position: relative;
+              overflow: visible !important;
+              text-align: left;
+            }
+          .: |
+            ha-card {
+              background-color: transparent;
+              border: none;
+            }
+  grid_flow_label:
+    card:
+      type: custom:mushroom-template-card
+      primary: >
+        {% set import = states('sensor.sigen_plant_grid_import_power') | round(1) %}
+        {% set export = states('sensor.sigen_plant_grid_export_power') | round(1) %}
+        {% if import > 0 %}
+          Importing
+        {% elif export > 0 %}
+          Exporting
+        {% endif %}
+      multiline_secondary: false
+      fill_container: false
+      card_mod:
+        style:
+          mushroom-state-info$: |
+            .primary {
+              font-size: 12px !important;
+              font-weight: bold !important;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              color: lightgray !important;
+              position: relative;
+              overflow: visible !important;
+              text-align: left;
+            }
+          .: |
+            ha-card {
+              background-color: transparent;
+              border: none;
+            }
+  battery_soc:
+    card:
+      type: custom:mushroom-template-card
+      primary: >
+        {% set soc = states('sensor.sigen_plant_battery_state_of_charge') %}
+        {% set soc_power = states('sensor.sigen_plant_battery_power') | round(1) %}
+        {% set rated_capacity = states('sensor.sigen_plant_rated_energy_capacity') %}
+        {% set battery_health = states('sensor.sigen_plant_battery_state_of_health') %}
+        {% set capacity = (soc|int * 0.01 * (rated_capacity|float)) | round(1) %}
+        {% if soc_power != 0 %}
+          {{ soc_power | abs }}kW · {{ soc }}%
+        {% else %}
+          {{ soc }}%
+        {% endif %} · {{ capacity }}kWh
+      secondary: SigenStor
+      multiline_secondary: false
+      fill_container: false
+      card_mod:
+        style:
+          mushroom-state-info$: |
+            .primary {
+              font-size: 14px !important;
+              font-weight: bold !important;
+              position: relative;
+              overflow: visible !important;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              text-align: left;
+            }
+            .secondary {
+              font-size: 10px !important;
+              color: gray !important;
+              position: relative;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              overflow: visible !important;
+              text-align: left;
+            }
+          .: |
+            ha-card {
+              background-color: transparent;
+              border: none;
+            }
+  battery_discharge_label:
+    card:
+      type: custom:mushroom-template-card
+      primary: >
+        {% set soc_power = states('sensor.sigen_plant_battery_power') | round(1)  %}
+        {% if soc_power < 0 %}
+          Discharging
+        {% endif %}
+      multiline_secondary: false
+      fill_container: false
+      card_mod:
+        style:
+          mushroom-state-info$: |
+            .primary {
+              font-size: 12px !important;
+              font-weight: bold !important;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              color: lightgreen !important;
+              position: relative;
+              overflow: visible !important;
+              text-align: left;
+            }
+          .: |
+            ha-card {
+              background-color: transparent;
+              border: none;
+            }
+  battery_charge_label:
+    card:
+      type: custom:mushroom-template-card
+      primary: >
+        {% set soc_power = states('sensor.sigen_plant_battery_power') | round(1) %}
+        {% if soc_power > 0 %}
+            Charging
+        {% endif %}
+      multiline_secondary: false
+      fill_container: false
+      card_mod:
+        style:
+          mushroom-state-info$: |
+            .primary {
+              font-size: 12px !important;
+              font-weight: bold !important;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              color: red !important;
+              position: relative;
+              overflow: visible !important;
+              text-align: left;
+            }
+          .: |
+            ha-card {
+              background-color: transparent;
+              border: none;
+            }
+  ev_soc:
+    card:
+      type: custom:mushroom-template-card
+      primary: >
+        {% set power = states('sensor.sigen_ac_charger_charging_power') | round(1) %}
+        {% set soc = states('sensor.grey_battery_level') %}
+        {% set range = states('sensor.grey_battery_range') | round(0) %}
+        {% if power > 0 %}
+          {{ power }}kW - {{ soc }}% ({{ range }}km)
+        {% else %}
+          {{ soc }}% ({{ range }}km)
+        {% endif %}
+      secondary: >
+        {% set soc = states('sensor.grey_battery_level') %}
+        {% if soc == 'unknown' %}
+          Car Asleep
+        {% else %}
+          Grey
+        {% endif %}
+      multiline_secondary: false
+      fill_container: false
+      card_mod:
+        style:
+          mushroom-state-info$: |
+            .primary {
+              font-size: 14px !important;
+              font-weight: bold !important;
+              position: relative;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              overflow: visible !important;
+              text-align: left;
+            }
+            .secondary {
+              font-size: 12px !important;
+              color: gray !important;
+              position: relative;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              overflow: visible !important;
+              text-align: left;
+            }
+          .: |
+            ha-card {
+              background-color: transparent;
+              border: none;
+            }
+  ev_ac_power:
+    card:
+      type: custom:mushroom-template-card
+      primary: >
+        {% set acrunstatus = states('sensor.sigen_ac_charger_system_state').split('-')[0] %}
+        {% set amps = states('number.sigen_ac_charger_charger_output_current') %}
+        {% if acrunstatus == 'Charging' %}
+          {{ states('sensor.sigen_ac_charger_charging_power') }}kW ({{ amps | int }}A)
+        {% else %}
+          {{ acrunstatus }}
+        {% endif %}
+      secondary: |
+        AC CHARGER
+      multiline_secondary: false
+      fill_container: false
+      card_mod:
+        style:
+          mushroom-state-info$: |
+            .primary {
+              font-size: 14px !important;
+              font-weight: bold !important;
+              position: relative;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              overflow: visible !important;
+              text-align: left;
+            }
+            .secondary {
+              font-size: 12px !important;
+              color: gray !important;
+              position: relative;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              overflow: visible !important;
+              text-align: left;
+            }
+          .: |
+            ha-card {
+              background-color: transparent;
+              border: none;
+            }
+  ev_charging_label:
+    card:
+      type: custom:mushroom-template-card
+      primary: >
+        {% set soc_power = states('sensor.sigen_ac_charger_charging_power') | round(1) %}
+        {% if soc_power > 0 %}
+          Charging
+        {% endif %}
+      multiline_secondary: false
+      fill_container: false
+      card_mod:
+        style:
+          mushroom-state-info$: |
+            .primary {
+              font-size: 12px !important;
+              font-weight: bold !important;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              color: red !important;
+              position: relative;
+              overflow: visible !important;
+              text-align: left;
+            }
+          .: |
+            ha-card {
+              background-color: transparent;
+              border: none;
+            }
+  ev_charging_icon:
+    card:
+      type: custom:mushroom-template-card
+      icon: >-
+        {% set soc_power = states('sensor.sigen_ac_charger_charging_power') | round(1) %}
+        {% if soc_power > 0 %}
+          mdi:lightning-bolt          
+        {% endif %}
+      icon_color: >-
+        {% set soc_power = states('sensor.sigen_ac_charger_charging_power') | round(1) %}
+
+        {% if soc_power > 0 %}
+          red          
+        {% endif %}
+      fill_container: false
+      card_mod:
+        style:
+          mushroom-state-info$: |
+            .primary {
+              font-size: 12px !important;
+              font-weight: bold !important;
+              letter-spacing: -0.1px !important; /* Reduce letter spacing */
+              color: lightgreen !important;
+              position: relative;
+              overflow: visible !important;
+              text-align: left;
+            }
+          .: |
+            ha-card {
+              background-color: transparent;
+              border: none;
+            }
+  vertical_line_ac_charger:
+    card:
+      type: custom:button-card
+      card_mod:
+        style: |
+          ha-card {
+            background-color: transparent;
+            border: none;
+            position: relative;
+            width: 1px;
+            height: 125px; /* Adjust height as needed */
+            background-color: gray; /* Light gray background */
+            overflow: hidden;
+            animation: rotation 2s linear infinite;
+          }
+          .line {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(0deg, green 50%, transparent 50%);
+            background-size: 100% 200%;
+          }
+          @keyframes rotation {
+            0% {
+              transform: rotate(0deg);
+            }
+            100% {
+              transform: rotate(00deg);
+            }
+          }
+  vertical_line_home:
+    card:
+      type: custom:button-card
+      card_mod:
+        style: |
+          ha-card {
+            background-color: transparent;
+            border: none;
+            position: relative;
+            width: 1px;
+            height: 120px; /* Adjust height as needed */
+            background-color: gray; /* Light gray background */
+            overflow: hidden;
+            animation: rotation 2s linear infinite;
+          }
+          .line {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(0deg, green 50%, transparent 50%);
+            background-size: 100% 200%;
+          }
+          @keyframes rotation {
+            0% {
+              transform: rotate(0deg);
+            }
+            100% {
+              transform: rotate(00deg);
+            }
+          }
+  vertical_line_pv:
+    card:
+      type: custom:button-card
+      card_mod:
+        style: |
+          ha-card {
+            background-color: transparent;
+            border: none;
+            position: relative;
+            width: 1px;
+            height: 104px; /* Adjust height as needed */
+            background-color: gray; /* Light gray background */
+            overflow: hidden;
+            animation: rotation 2s linear infinite;
+          }
+          .line {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(0deg, green 50%, transparent 50%);
+            background-size: 100% 200%;
+          }
+          @keyframes rotation {
+            0% {
+              transform: rotate(0deg);
+            }
+            100% {
+              transform: rotate(00deg);
+            }
+          }
+  vertical_line_sig:
+    card:
+      type: custom:button-card
+      card_mod:
+        style: |
+          ha-card {
+            background-color: transparent;
+            border: none;
+            position: relative;
+            width: 1px;
+            height: 93px; /* Adjust height as needed */
+            background-color: gray; /* Light gray background */
+            overflow: hidden;
+            animation: rotation 2s linear infinite;
+          }
+          .line {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(0deg, green 50%, transparent 50%);
+            background-size: 100% 200%;
+          }
+          @keyframes rotation {
+            0% {
+              transform: rotate(0deg);
+            }
+            100% {
+              transform: rotate(00deg);
+            }
+          }
+  vertical_line_grid:
+    card:
+      type: custom:button-card
+      card_mod:
+        style: |
+          ha-card {
+            background-color: transparent;
+            border: none;
+            position: relative;
+            width: 1px;
+            height: 44px; /* Adjust height as needed */
+            background-color: gray; /* Light gray background */
+            overflow: hidden;
+            animation: rotation 2s linear infinite;
+          }
+          .line {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(0deg, green 50%, transparent 50%);
+            background-size: 100% 200%;
+          }
+          @keyframes rotation {
+            0% {
+              transform: rotate(0deg);
+            }
+            100% {
+              transform: rotate(00deg);
+            }
+          }
+  animated_line_pv_sig_01:
+    card:
+      type: custom:button-card
+      triggers_update: sensor.sigen_plant_battery_power
+      card_mod:
+        style: |
+          ha-card {
+            position: relative;
+            height: 2px !important;
+            background: white;
+            border: none;
+            opacity: 0.6;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: hidden;
+            box-sizing: content-box;
+            transform: rotate(90deg); /* ← Rotation added here */
+            transform-origin: left center; /* Rotate around left side */
+          }
+
+          {% if states('sensor.sigen_plant_pv_power') | int > 0 %}
+          ha-card::before {
+            content: "";
+            position: relative;
+            top: 0;
+            left: -60%;
+            width: 60%;
+            height: 2px;
+            background: linear-gradient(to right,
+              rgba(0, 123, 255, 0.0) 0%,
+              rgba(0, 123, 255, 0.4) 40%,
+              rgba(0, 123, 255, 1.0) 100%);
+            border-radius: 1px;
+            animation: cometMove 2s ease-in-out infinite 1.3s;
+            pointer-events: none;
+          }
+          {% endif %}
+
+          @keyframes cometMove {
+            0% {
+              left: -50%;
+            }
+            100% {
+              left: 100%;
+            }
+          }
+  animated_line_pv_sig_02:
+    card:
+      type: custom:button-card
+      triggers_update: sensor.sigen_plant_battery_power
+      card_mod:
+        style: |
+          ha-card {
+            position: relative;
+            height: 2px !important;
+            background: white;
+            border: none;
+            opacity: 0.6;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: hidden;
+            box-sizing: content-box;
+            transform: rotate(0deg); /* ← Rotation added here */
+            transform-origin: left center; /* Rotate around left side */
+          }
+
+          {% if states('sensor.sigen_plant_pv_power') | int > 0 %}
+          ha-card::before {
+            content: "";
+            position: relative;
+            top: 0;
+            left: -60%;
+            width: 60%;
+            height: 2px;
+            background: linear-gradient(to left,
+              rgba(0, 123, 255, 0.0) 0%,
+              rgba(0, 123, 255, 0.4) 40%,
+              rgba(0, 123, 255, 1.0) 100%);
+            border-radius: 1px;
+            animation: cometMove 2s ease-in-out infinite;
+            pointer-events: none;
+          }
+          {% endif %}
+
+          @keyframes cometMove {
+            0% {
+              left: 100%;
+            }
+            100% {
+              left: -30%;
+            }
+          }
+  animated_line_gw_home_01:
+    card:
+      type: custom:button-card
+      triggers_update: sensor.sigen_plant_battery_power
+      card_mod:
+        style: |
+          ha-card {
+            position: relative;
+            height: 2px !important;
+            background: white;
+            border: none;
+            opacity: 0.6;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: hidden;
+            box-sizing: content-box;
+            transform: rotate(-25deg); /* ← Rotation added here */
+            transform-origin: left center; /* Rotate around left side */
+          }
+
+          {% if states('sensor.sigen_plant_plant_active_power') | int > 0 %}
+          ha-card::before {
+            content: "";
+            position: relative;
+            top: 0;
+            left: -60%;
+            width: 60%;
+            height: 2px;
+            background: linear-gradient(to right,
+              rgba(0, 123, 255, 0.0) 0%,
+              rgba(0, 123, 255, 0.4) 40%,
+              rgba(0, 123, 255, 1.0) 100%);
+            border-radius: 1px;
+            animation: cometMove 2s ease-in-out infinite 2.6s;
+            pointer-events: none;
+          }
+          {% endif %}
+
+          @keyframes cometMove {
+            0% {
+              left: -30%;
+            }
+            100% {
+              left: 100%;
+            }
+          }
+  animated_line_sig_gw:
+    card:
+      type: custom:button-card
+      triggers_update: sensor.sigen_plant_battery_power
+      card_mod:
+        style: >
+          ha-card {
+            position: relative;
+            height: 2px !important;
+            background: white;
+            border: none;
+            opacity: 0.6;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: hidden;
+            box-sizing: content-box;
+            transform: rotate(20deg); /* ← Rotation added here */
+            transform-origin: left center; /* Rotate around left side */
+          }
+
+
+          {% if states('sensor.sigen_plant_battery_power') | round(1) < 0 or
+          states('sensor.sigen_plant_pv_power') | round(1) > 0 %}
+
+          ha-card::before {
+            content: "";
+            position: relative;
+            top: 0;
+            left: -60%;
+            width: 60%;
+            height: 2px;
+            {% if states('sensor.sigen_plant_battery_power') | round(1) < 0 or states('sensor.sigen_plant_pv_power') | round(1) > 0 %}
+            background: linear-gradient(to right,
+              rgba(0, 123, 255, 0.0) 0%,
+              rgba(0, 123, 255, 0.4) 40%,
+              rgba(0, 123, 255, 1.0) 100%);
+            {% else %}
+            background: linear-gradient(to left,
+              rgba(0, 123, 255, 0.0) 0%,
+              rgba(0, 123, 255, 0.4) 40%,
+              rgba(0, 123, 255, 1.0) 100%);
+            {% endif %}
+            border-radius: 1px;
+            animation: cometMove 2s ease-in-out infinite 1.3s;
+            pointer-events: none;
+          }
+
+          {% endif %}
+
+
+          @keyframes cometMove {
+            0% {
+              {% if states('sensor.sigen_plant_battery_power') | round(1) < 0 or states('sensor.sigen_plant_pv_power') | round(1) > 0%}
+              left: -30%;
+              {% else %}
+              left: 100%;
+              {% endif %}
+            }
+            100% {
+              {% if states('sensor.sigen_plant_battery_power') | round(1) < 0 or states('sensor.sigen_plant_pv_power') | round(1) > 0%}
+              left: 100%;
+              {% else %}
+              left: -30%;
+              {% endif %}
+            }
+          }
+  animated_line_gw_grid_01:
+    card:
+      type: custom:button-card
+      triggers_update: sensor.sigen_plant_battery_power
+      card_mod:
+        style: >
+          ha-card {
+            position: relative;
+            height: 2px !important;
+            background: white;
+            border: none;
+            opacity: 0.6;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: hidden;
+            box-sizing: content-box;
+            transform: rotate(90deg); /* ← Rotation added here */
+            transform-origin: left center; /* Rotate around left side */
+          }
+
+
+          {% if states('sensor.sigen_plant_grid_active_power') | round(1) != 0
+          %}
+
+          ha-card::before {
+            content: "";
+            position: relative;
+            top: 0;
+            left: -60%;
+            width: 60%;
+            height: 2px;
+            {% if states('sensor.sigen_plant_grid_export_power') | round(1) > 0 %}
+            background: linear-gradient(to right,
+              rgba(0, 123, 255, 0.0) 0%,
+              rgba(0, 123, 255, 0.4) 40%,
+              rgba(0, 123, 255, 1.0) 100%);
+            {% endif %}
+            {% if states('sensor.sigen_plant_grid_import_power') | round(1) > 0 %}
+            background: linear-gradient(to left,
+              rgba(0, 123, 255, 0.0) 0%,
+              rgba(0, 123, 255, 0.4) 40%,
+              rgba(0, 123, 255, 1.0) 100%);
+            {% endif %}
+            border-radius: 1px;
+            {% if states('sensor.sigen_plant_grid_export_power') | round(1) > 0 %}
+            animation: cometMove 2s ease-in-out infinite;
+            {% endif %}
+            {% if states('sensor.sigen_plant_grid_import_power') | round(1) > 0 %}
+            animation: cometMove 2s ease-in-out infinite 1.3s;
+            {% endif %}
+            pointer-events: none;
+          }
+
+          {% endif %}
+
+
+          @keyframes cometMove {
+            0% {
+              {% if states('sensor.sigen_plant_grid_export_power') | round(1) > 0 %}
+              left: -30%;
+              {% endif %}
+              {% if states('sensor.sigen_plant_grid_import_power') | round(1) > 0 %}
+              left: 100%;
+              {% endif %}
+            }
+            100% {
+              {% if states('sensor.sigen_plant_grid_export_power') | round(1) > 0 %}
+              left: 100%;
+              {% endif %}
+              {% if states('sensor.sigen_plant_grid_import_power') | round(1) > 0 %}
+              left: -30%;
+              {% endif %}
+            }
+          }
+  animated_line_gw_grid_02:
+    card:
+      type: custom:button-card
+      triggers_update: sensor.sigen_plant_battery_power
+      card_mod:
+        style: >
+          ha-card {
+            position: relative;
+            height: 2px !important;
+            background: white;
+            border: none;
+            opacity: 0.6;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: hidden;
+            box-sizing: content-box;
+            transform: rotate(20deg); /* ← Rotation added here */
+            transform-origin: left center; /* Rotate around left side */
+          }
+
+
+          {% if states('sensor.sigen_plant_grid_active_power') | round(1) != 0
+          %}
+
+          ha-card::before {
+            content: "";
+            position: relative;
+            top: 0;
+            left: -60%;
+            width: 60%;
+            height: 2px;
+            {% if states('sensor.sigen_plant_grid_export_power') | round(1) > 0 %}
+            background: linear-gradient(to right,
+              rgba(0, 123, 255, 0.0) 0%,
+              rgba(0, 123, 255, 0.4) 40%,
+              rgba(0, 123, 255, 1.0) 100%);
+            {% endif %}
+            {% if states('sensor.sigen_plant_grid_import_power') | round(1) > 0 %}
+            background: linear-gradient(to left,
+              rgba(0, 123, 255, 0.0) 0%,
+              rgba(0, 123, 255, 0.4) 40%,
+              rgba(0, 123, 255, 1.0) 100%);
+            {% endif %}
+            border-radius: 1px;
+            {% if states('sensor.sigen_plant_grid_export_power') | round(1) > 0 %}
+            animation: cometMove 2s ease-in-out infinite 1.3s;
+            {% endif %}
+            {% if states('sensor.sigen_plant_grid_import_power') | round(1) > 0 %}
+            animation: cometMove 2s ease-in-out infinite;
+            {% endif %}pointer-events: none;
+          }
+
+          {% endif %}
+
+
+          @keyframes cometMove {
+            0% {
+              {% if states('sensor.sigen_plant_grid_export_power') | round(1) > 0 %}
+              left: -30%;
+              {% endif %}
+              {% if states('sensor.sigen_plant_grid_import_power') | round(1) > 0 %}
+              left: 100%;
+              {% endif %}
+            }
+            100% {
+              {% if states('sensor.sigen_plant_grid_export_power') | round(1) > 0 %}
+              left: 100%;
+              {% endif %}
+              {% if states('sensor.sigen_plant_grid_import_power') | round(1) > 0 %}
+              left: -30%;
+              {% endif %}
+            }
+          }
+styles:
+  card:
+    - width: 480px
+    - align-self: start
+    - opacity: 1
+    - background-color: null
+    - border: none
+    - height: 420px
+  custom_fields:
+    home_image:
+      - position: absolute
+      - top: 5px
+      - left: 10px
+      - width: 400px
+    ac_charger:
+      - position: absolute
+      - top: 25px
+      - left: 5px
+      - width: 395px
+    sigenstor:
+      - position: absolute
+      - top: 5px
+      - left: 10px
+      - width: 395px
+    gateway:
+      - position: absolute
+      - top: 5px
+      - left: 10px
+      - width: 395px
+    pv_power:
+      - position: absolute
+      - top: "-10px"
+      - left: 175px
+      - width: 100px
+    load_power:
+      - position: absolute
+      - top: "-10px"
+      - left: 325px
+      - width: 100px
+    ac_power:
+      - position: absolute
+      - top: 110px
+      - left: 415px
+      - width: 100px
+    sub_power:
+      - position: absolute
+      - top: 150px
+      - left: 415px
+      - width: 100px
+    pool_power:
+      - position: absolute
+      - top: 190px
+      - left: 415px
+      - width: 100px
+    hws_power:
+      - position: absolute
+      - top: 230px
+      - left: 415px
+      - width: 100px
+    grid_power:
+      - position: absolute
+      - top: 340px
+      - left: 327px
+      - width: 100px
+    grid_flow_label:
+      - position: absolute
+      - top: 370px
+      - left: 327px
+      - width: 100px
+    battery_soc:
+      - position: absolute
+      - top: 340px
+      - left: 156px
+      - width: 100px
+    battery_discharge_label:
+      - position: absolute
+      - top: 370px
+      - left: 156px
+      - width: 100px
+    battery_charge_label:
+      - position: absolute
+      - top: 370px
+      - left: 156px
+      - width: 100px
+    ev_soc:
+      - position: absolute
+      - top: 280px
+      - left: 15px
+      - width: 100px
+    ev_ac_power:
+      - position: absolute
+      - top: 55px
+      - left: 21px
+      - width: 100px
+    ev_charging_label:
+      - position: absolute
+      - top: 315px
+      - left: 15px
+      - width: 100px
+    ev_charging_icon:
+      - position: absolute
+      - top: 225px
+      - left: 21px
+      - width: 100px
+    vertical_line_ac_charger:
+      - position: absolute
+      - top: 65px
+      - left: 25px
+      - width: 1px
+    vertical_line_home:
+      - position: absolute
+      - top: 0px
+      - left: 330px
+      - width: 1px
+    vertical_line_pv:
+      - position: absolute
+      - top: 0px
+      - left: 180px
+      - width: 1px
+      - height: 100px
+    vertical_line_sig:
+      - position: absolute
+      - top: 300px
+      - left: 160px
+      - width: 1px
+      - height: 100px
+    vertical_line_grid:
+      - position: absolute
+      - top: 352px
+      - left: 330px
+      - width: 1px
+    animated_line_pv_sig_01:
+      - position: absolute
+      - top: 100px
+      - left: 162px
+      - width: 125px
+    animated_line_pv_sig_02:
+      - position: absolute
+      - top: 100px
+      - left: 161px
+      - width: 20px
+    animated_line_gw_home_01:
+      - position: absolute
+      - top: 275px
+      - left: 245px
+      - width: 60px
+    animated_line_sig_gw:
+      - position: absolute
+      - top: 255px
+      - left: 180px
+      - width: 41px
+    animated_line_gw_grid_01:
+      - position: absolute
+      - top: 295px
+      - left: 230px
+      - width: 20px
+    animated_line_gw_grid_02:
+      - position: absolute
+      - top: 315px
+      - left: 229px
+      - width: 109px
