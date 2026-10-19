@@ -4,7 +4,7 @@ A standalone Home Assistant Lovelace card that recreates the SigenCloud / mySige
 
 - Animated power flow between the solar panels, SigenStor, gateway, home and grid. Each highlight moves in the direction power is flowing, faster at higher power, and stops when idle.
 - Power readings for solar, home, SigenStor (with battery state of charge), grid, and the AC and DC chargers when present.
-- Today's energy statistics and a battery level panel.
+- Today's energy statistics and a battery level panel. Tap any statistic or the battery level to open that sensor's details and history, or the stored energy (e.g. 4.4 of 40.3 kWh) for a chart of the energy held in the battery today.
 - Power metrics chart from midnight to now, with sunrise and sunset times for your Home Assistant location. Hover (or tap) the chart to see every value at that time.
 - Tap **SOLAR** for per-string PV details (voltage, current, power, today's and lifetime production) and a chart of each string's power today.
 - Tap **HOME** for a live breakdown of power usage across the entities you list, sorted from highest to lowest.
@@ -28,6 +28,10 @@ Tapping **HOME**:
 
 ![Desktop home power usage](docs/screenshots/desktop-home.png)
 
+Tapping the stored energy under **Battery level**:
+
+![Desktop battery energy](docs/screenshots/desktop-energy.png)
+
 ### iPhone (portrait)
 
 <table>
@@ -35,11 +39,13 @@ Tapping **HOME**:
     <th>Main view</th>
     <th>SOLAR</th>
     <th>HOME</th>
+    <th>Battery energy</th>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/iphone-main.png" alt="iPhone main view" width="260"></td>
-    <td valign="top"><img src="docs/screenshots/iphone-solar.png" alt="iPhone PV strings" width="260"></td>
-    <td valign="top"><img src="docs/screenshots/iphone-home.png" alt="iPhone home power usage" width="260"></td>
+    <td><img src="docs/screenshots/iphone-main.png" alt="iPhone main view" width="200"></td>
+    <td valign="top"><img src="docs/screenshots/iphone-solar.png" alt="iPhone PV strings" width="200"></td>
+    <td valign="top"><img src="docs/screenshots/iphone-home.png" alt="iPhone home power usage" width="200"></td>
+    <td valign="top"><img src="docs/screenshots/iphone-energy.png" alt="iPhone battery energy" width="200"></td>
   </tr>
 </table>
 

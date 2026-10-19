@@ -1,4 +1,4 @@
-/* Sigenergy Flow Card v39 — standalone Home Assistant Lovelace custom card */
+/* Sigenergy Flow Card v40 — standalone Home Assistant Lovelace custom card */
 
 // Every coordinate below (artwork, wires, label anchors) is in pixels of bg_villa_pv.png (1010x858).
 // The artwork and the wires share one SVG viewBox, so they scale together at any card width.
@@ -114,7 +114,8 @@ class SigenergyFlowCard extends HTMLElement {
       .node button{all:unset;cursor:pointer;display:block}.node button:focus-visible{outline:2px solid #71d3d1}
       .sidebar{display:flex;flex-direction:column;gap:12px}.panel{background:#222831;border:1px solid #35414a;border-radius:12px;padding:13px}
       .panel h3{margin:0 0 11px;font-size:14px;font-weight:600;color:#d5e5e8}.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
-      .stat{background:#2a323d;border-radius:8px;padding:10px}.stat small{font-size:11px;color:#aabac5;display:block}.stat b{font-size:18px;display:block;margin-top:4px}
+      .stat{all:unset;box-sizing:border-box;background:#2a323d;border-radius:8px;padding:10px;cursor:pointer;transition:background .2s}.stat:hover{background:#323b47}.stat:focus-visible{outline:2px solid #71d3d1}.stat small{font-size:11px;color:#aabac5;display:block}.stat b{font-size:18px;display:block;margin-top:4px}
+      .link{all:unset;box-sizing:border-box;display:block;width:100%;cursor:pointer;border-radius:6px}.link:hover{filter:brightness(1.2)}.link:focus-visible{outline:2px solid #71d3d1}
       .socbar{height:10px;background:#45515c;border-radius:8px;overflow:hidden;margin:9px 0}.socfill{height:100%;background:linear-gradient(90deg,#49b5ac,#9ee4db);width:0%;transition:width .5s}
       .chartpanel{margin-top:14px}.charthead{display:flex;justify-content:space-between;align-items:center}.legend{font-size:11px;color:#abb9c2}
       .legend span{margin-right:12px}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
@@ -172,10 +173,10 @@ class SigenergyFlowCard extends HTMLElement {
         </div>
       </div></section><aside class="sidebar">
         <section class="panel"><h3>Today's energy</h3><div class="stats">
-          <div class="stat"><small>Solar produced</small><b id="dayPv">—</b></div><div class="stat"><small>Grid imported</small><b id="dayImport">—</b></div>
-          <div class="stat"><small>Grid exported</small><b id="dayExport">—</b></div><div class="stat"><small>Battery charged</small><b id="dayCharge">—</b></div>
-          <div class="stat"><small>Battery discharged</small><b id="dayDischarge">—</b></div><div class="stat"><small>Battery SOC</small><b id="daySoc">—</b></div>
-        </div></section><section class="panel"><h3>Battery level</h3><strong id="socLarge">—</strong><div class="socbar"><div class="socfill" id="socFill"></div></div><div class="muted" id="capacity"></div></section>
+          <button class="stat" data-entity="sensor.sigen_inverter_daily_pv_energy"><small>Solar produced</small><b id="dayPv">—</b></button><button class="stat" data-entity="sensor.sigen_plant_daily_grid_import_energy"><small>Grid imported</small><b id="dayImport">—</b></button>
+          <button class="stat" data-entity="sensor.sigen_plant_daily_grid_export_energy"><small>Grid exported</small><b id="dayExport">—</b></button><button class="stat" data-entity="sensor.sigen_inverter_daily_charge_energy"><small>Battery charged</small><b id="dayCharge">—</b></button>
+          <button class="stat" data-entity="sensor.sigen_inverter_daily_discharge_energy"><small>Battery discharged</small><b id="dayDischarge">—</b></button><button class="stat" id="socStat" data-entity="sensor.sigen_inverter_battery_state_of_charge"><small>Battery SOC</small><b id="daySoc">—</b></button>
+        </div></section><section class="panel"><h3>Battery level</h3><button class="link" id="socLevel" data-entity="sensor.sigen_inverter_battery_state_of_charge"><strong id="socLarge">—</strong><div class="socbar"><div class="socfill" id="socFill"></div></div></button><button class="link muted" id="capacity" title="Show stored energy today"></button></section>
       </aside></div>
       <section class="panel chartpanel"><div class="charthead"><h3>Power metrics · Today</h3><span class="muted" id="chartStatus">Loading history…</span></div>
       <div class="legend">${legend}</div>
@@ -191,6 +192,12 @@ class SigenergyFlowCard extends HTMLElement {
       <section class="panel"><div class="charthead"><h3>PV power (kW) · Today</h3><span class="muted" id="pvChartStatus"></span></div>
       <div class="legend">${this.config.pv_strings.map((name, i) => `<span><i class="dot" style="background:${PV_COLORS[i % PV_COLORS.length]}"></i>${name}</span>`).join('')}</div>
       <div class="chart-wrap"><svg id="pvChart"></svg><div class="tip" id="pvChartTip" hidden></div></div></section>
+    </div></dialog>
+    <dialog id="energyDialog" aria-labelledby="energyTitle"><div class="dlg">
+      <div class="dlg-head"><h2 id="energyTitle">Battery energy</h2><button id="energyClose" title="Close" aria-label="Close">✕</button></div>
+      <section class="panel"><div class="home-total"><span>Stored now</span><b id="energyNow">—</b></div><div class="muted" id="energyOf"></div></section>
+      <section class="panel"><div class="charthead"><h3>Stored energy (kWh) · Today</h3><span class="muted" id="energyChartStatus"></span></div>
+      <div class="chart-wrap"><svg id="energyChart"></svg><div class="tip" id="energyChartTip" hidden></div></div></section>
     </div></dialog>
     <dialog id="homeDialog" aria-labelledby="homeTitle"><div class="dlg">
       <div class="dlg-head"><h2 id="homeTitle">Home power usage</h2><button id="homeClose" title="Close" aria-label="Close">✕</button></div>
@@ -220,11 +227,20 @@ class SigenergyFlowCard extends HTMLElement {
             const entityId = e.target.closest('[data-entity]')?.dataset.entity;
             if (!entityId) return;
             homeDialog.close();
-            this.dispatchEvent(new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId } }));
+            this._moreInfo(entityId);
         });
-        for (const d of [dialog, homeDialog]) d.addEventListener('click', e => { if (e.target === d) d.close(); });
+        for (const stat of this.root.querySelectorAll('.stat[data-entity], .link[data-entity]'))
+            stat.addEventListener('click', () => this._moreInfo(stat.dataset.entity));
+        const energyDialog = this._id('energyDialog');
+        this._id('capacity').addEventListener('click', () => {
+            energyDialog.showModal();
+            this._updateEnergy();
+            this._loadEnergyHistory();
+        });
+        this._id('energyClose').addEventListener('click', () => energyDialog.close());
+        for (const d of [dialog, homeDialog, energyDialog]) d.addEventListener('click', e => { if (e.target === d) d.close(); });
         this._observeCharts();
-        for (const [chart, tip] of [['chart', 'chartTip'], ['pvChart', 'pvChartTip']]) {
+        for (const [chart, tip] of [['chart', 'chartTip'], ['pvChart', 'pvChartTip'], ['energyChart', 'energyChartTip']]) {
             const svg = this._id(chart), box = this._id(tip);
             const show = e => this._hoverChart(svg, box, e);
             svg.addEventListener('pointermove', show);
@@ -251,6 +267,7 @@ class SigenergyFlowCard extends HTMLElement {
         });
         this._chartObserver.observe(this._id('chart'));
         this._chartObserver.observe(this._id('pvChart'));
+        this._chartObserver.observe(this._id('energyChart'));
         const stage = this.root.querySelector('.stage');
         stage.fit = () => this._fitStage(stage);
         this._chartObserver.observe(stage);
@@ -267,6 +284,9 @@ class SigenergyFlowCard extends HTMLElement {
     }
     _id(id) {
         return this.root.getElementById(id)
+    }
+    _moreInfo(entityId) {
+        this.dispatchEvent(new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId } }));
     }
     _has(id) {
         return !!this._hass?.states[id];
@@ -325,6 +345,34 @@ class SigenergyFlowCard extends HTMLElement {
             }
         });
         for (const [key, v] of Object.entries(totals)) this._text(`pvTotal_${key}`, v === null ? '—' : v.toFixed(2));
+    }
+    // Stored energy is SOC × rated capacity; no sensor reports it directly.
+    _updateEnergy() {
+        if (!this._hass || !this._id('energyDialog').open) return;
+        const soc = this._num(this._socEntity), cap = this._num('sensor.sigen_plant_rated_energy_capacity');
+        this._text('energyNow', soc === null || cap === null ? '—' : `${(soc * cap / 100).toFixed(1)} kWh`);
+        this._text('energyOf', cap === null ? '' : `of ${cap.toFixed(1)} kWh rated capacity${soc === null ? '' : ` · ${soc.toFixed(0)}%`}`);
+    }
+    async _loadEnergyHistory() {
+        if (!this._hass) return;
+        const cap = this._num('sensor.sigen_plant_rated_energy_capacity');
+        if (cap === null) {
+            this._text('energyChartStatus', 'Rated capacity unavailable');
+            return;
+        }
+        const day = new Date();
+        day.setHours(0, 0, 0, 0);
+        this._text('energyChartStatus', 'Loading history…');
+        try {
+            const query = `history/period/${encodeURIComponent(day.toISOString())}?filter_entity_id=${encodeURIComponent(this._socEntity)}&minimal_response&no_attributes`;
+            const [points] = this._series(await this._hass.callApi('GET', query), [this._socEntity]);
+            const series = [{ points: points.map(p => ({ t: p.t, v: p.v * cap / 100 })), color: '#69d4d1', name: 'Stored', unit: 'kWh' }];
+            const hasData = this._showChart(this._id('energyChart'), series, day.getTime(), false, Math.ceil(cap / 2) * 2);
+            this._text('energyChartStatus', hasData ? 'Midnight → now' : 'No recorded battery history today');
+        } catch (e) {
+            this._text('energyChartStatus', 'Recorder history unavailable');
+            this._id('energyChart').replaceChildren();
+        }
     }
     async _loadPvHistory() {
         if (!this._hass) return;
@@ -447,6 +495,11 @@ class SigenergyFlowCard extends HTMLElement {
         this._text('dayCharge', this._energy(n('sensor.sigen_inverter_daily_charge_energy')));
         this._text('dayDischarge', this._energy(n('sensor.sigen_inverter_daily_discharge_energy')));
         this._text('daySoc', soc === null ? '—' : `${soc.toFixed(0)}%`);
+        const socEntity = n('sensor.sigen_inverter_battery_state_of_charge') !== null ? 'sensor.sigen_inverter_battery_state_of_charge' : 'sensor.sigen_plant_battery_state_of_charge';
+        this._id('socStat').dataset.entity = socEntity;
+        this._id('socLevel').dataset.entity = socEntity;
+        this._socEntity = socEntity;
+        this._updateEnergy();
         this._text('socLarge', soc === null ? '—' : `${soc.toFixed(0)}%`);
         this._id('socFill').style.width = `${Math.min(100, Math.max(0, soc ?? 0))}%`;
         const cap = n('sensor.sigen_plant_rated_energy_capacity');
@@ -541,12 +594,12 @@ class SigenergyFlowCard extends HTMLElement {
             this._text('chartStatus', 'No recorded power history today');
     }
     // Draws now and again whenever the chart is resized; returns whether any series has data.
-    _showChart(svg, series, start, signed) {
-        svg._redraw = () => this._plot(svg, series, start, signed);
+    _showChart(svg, series, start, signed, top) {
+        svg._redraw = () => this._plot(svg, series, start, signed, top);
         svg._redraw();
         return series.some(s => s.points.length > 1);
     }
-    _plot(svg, series, start, signed) {
+    _plot(svg, series, start, signed, top) {
         const end = Date.now();
         const width = Math.max(240, svg.clientWidth || 900), height = 170;
         svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
@@ -562,7 +615,7 @@ class SigenergyFlowCard extends HTMLElement {
             return el;
         };
         const values = series.flatMap(s => s.points.map(p => Math.abs(p.v)));
-        const max = signed ? Math.max(1, ...values) : Math.max(1, Math.ceil(Math.max(0, ...values)));
+        const max = top ?? (signed ? Math.max(1, ...values) : Math.max(1, Math.ceil(Math.max(0, ...values))));
         const left = 38, right = width - 12;
         const x = t => left + (right - left) * (t - start) / Math.max(1, end - start);
         const y = signed ? v => 78 - 65 * v / max : v => 143 - 130 * v / max;
@@ -643,7 +696,7 @@ class SigenergyFlowCard extends HTMLElement {
         const time = new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const html = [...rows.values()].map(r => {
             const note = r.note?.(r.v);
-            return `<div><i class="dot" style="background:${r.color}"></i>${r.name}${note ? ` <em>${note}</em>` : ''}<span>${Math.abs(r.v).toFixed(2)} kW</span></div>`;
+            return `<div><i class="dot" style="background:${r.color}"></i>${r.name}${note ? ` <em>${note}</em>` : ''}<span>${Math.abs(r.v).toFixed(2)} ${r.unit ?? 'kW'}</span></div>`;
         }).join('');
         tip.innerHTML = `<b>${time}</b>${html || '<em>No data</em>'}`;
         tip.hidden = false;
