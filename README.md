@@ -55,41 +55,43 @@ All data is read locally over Modbus by the [Sigenergy Local Modbus](https://git
 
 ## Installation
 
-1. Copy the artwork to `/config/www/Sigenergy/` on your Home Assistant instance. The card uses these four files from `images/`:
+The artwork is built into `sigenergy-flow-card.js`, so the card is a single file: nothing needs copying to `/config/www/Sigenergy/`.
 
-   ```
-   bg_villa_pv.png
-   ac_charger_bg.png
-   bg_sigenstor.png
-   bg_gateway.png
-   ```
+### HACS (recommended)
 
-   Copying the whole `images/` directory also works.
-
-2. Copy `sigenergy-flow-card.js` to `/config/www/sigenergy-flow-card.js`.
-
-   For example, over SSH:
-
-   ```sh
-   scp images/bg_villa_pv.png images/ac_charger_bg.png images/bg_sigenstor.png images/bg_gateway.png root@homeassistant.local:/config/www/Sigenergy/
-   scp sigenergy-flow-card.js root@homeassistant.local:/config/www/
-   ```
-
-3. Register the card as a dashboard resource: **Settings → Dashboards → ⋮ → Resources → Add resource**
-   - URL: `/local/sigenergy-flow-card.js?v=1`
-   - Resource type: **JavaScript module**
-
-4. Add the card to a dashboard (**Edit dashboard → Add card → Manual**):
+1. In Home Assistant, open **HACS**, then **⋮ → Custom repositories**.
+2. Add `https://github.com/jyavenard/Sigenergy_Card` with type **Dashboard**.
+3. Search HACS for **Sigenergy Flow Card**, open it and select **Download**.
+4. Reload the browser when HACS asks. HACS registers the dashboard resource (`/hacsfiles/Sigenergy_Card/sigenergy-flow-card.js`) for you.
+5. Add the card to a dashboard (**Edit dashboard → Add card → Manual**):
 
    ```yaml
    type: custom:sigenergy-flow-card
    ```
 
-5. Hard-refresh the browser. On the Home Assistant companion app, you may need to reset the app's frontend cache from its settings.
+HACS offers updates when a new version is published; download it and reload the browser.
 
-### Updating
+If your dashboards are configured in YAML mode, HACS cannot register the resource; add it yourself as below, with the URL `/hacsfiles/Sigenergy_Card/sigenergy-flow-card.js`.
 
-Copy the new `sigenergy-flow-card.js` over the old one, then increase the `?v=` number in the resource URL (for example `?v=2`). The browser keeps using its cached copy until that URL changes.
+### Manual
+
+1. Copy `sigenergy-flow-card.js` to `/config/www/` on your Home Assistant instance, for example over SSH:
+
+   ```sh
+   scp sigenergy-flow-card.js root@homeassistant.local:/config/www/
+   ```
+
+2. Register it as a dashboard resource: **Settings → Dashboards → ⋮ → Resources → Add resource**
+   - URL: `/local/sigenergy-flow-card.js?v=1`
+   - Resource type: **JavaScript module**
+
+3. Add the card to a dashboard as above, then hard-refresh the browser. On the Home Assistant companion app, you may need to reset the app's frontend cache from its settings.
+
+To update, copy the new file over the old one and increase the `?v=` number in the resource URL (for example `?v=2`); the browser keeps using its cached copy until that URL changes.
+
+### Moving from a manual install to HACS
+
+Remove the `/local/sigenergy-flow-card.js` resource and delete `/config/www/sigenergy-flow-card.js`, so only the HACS copy is loaded. The `/config/www/Sigenergy/` artwork directory is no longer used and can be deleted.
 
 ## Configuration
 
@@ -97,7 +99,6 @@ All options are optional.
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `image_base` | `/local/Sigenergy` | URL of the directory holding the artwork. |
 | `pv_strings` | `[PV1, PV2, PV3, PV4]` | Display names for the PV strings, in order. The number of names sets how many strings are shown. |
 | `home_entities` | `[]` | Power entities listed when tapping **HOME**. Without it, HOME is a plain label. |
 | `ac_charger_soc` | none | Battery level entity of the vehicle on the AC charger. |
@@ -152,6 +153,14 @@ Each charger's reading, chart series and (for the AC charger) artwork only appea
 - DC charger: `sensor.sigen_inverter_dc_charger_output_power`
 
 The DC charger's vehicle state of charge is hidden while the charger is idle and reports 0%.
+
+## Changing the artwork
+
+The scene images in `images/` are embedded in the card. After changing `bg_villa_pv.png`, `ac_charger_bg.png`, `bg_sigenstor.png` or `bg_gateway.png`, regenerate the embedded copy (requires [Pillow](https://python-pillow.org)):
+
+```sh
+python3 tools/embed-artwork.py
+```
 
 ## Utilities
 
