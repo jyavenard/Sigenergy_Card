@@ -1,4 +1,4 @@
-/* Sigenergy Flow Card v41 — standalone Home Assistant Lovelace custom card */
+/* Sigenergy Flow Card v42 — standalone Home Assistant Lovelace custom card */
 
 // Every coordinate below (artwork, wires, label anchors) is in pixels of bg_villa_pv.png (1010x858).
 // The artwork and the wires share one SVG viewBox, so they scale together at any card width.
@@ -92,6 +92,7 @@ class SigenergyFlowCard extends HTMLElement {
         this.shadowRoot.innerHTML = `<style>
       :host{display:block;color:#edf3f6;font-family:Roboto,Arial,sans-serif}
       [hidden]{display:none !important}
+      button *{pointer-events:none}
       ha-card{display:block;background:#11191d;border:1px solid #343b44;border-radius:16px;overflow:hidden;color:inherit;padding:16px;box-sizing:border-box}
       .header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
       .heading{font-size:20px;font-weight:650;letter-spacing:.2px}.sub{font-size:12px;color:#96a5af}
@@ -178,7 +179,7 @@ class SigenergyFlowCard extends HTMLElement {
           <button class="stat" data-entity="sensor.sigen_inverter_daily_pv_energy"><small>Solar produced</small><b id="dayPv">—</b></button><button class="stat" data-entity="sensor.sigen_plant_daily_grid_import_energy"><small>Grid imported</small><b id="dayImport">—</b></button>
           <button class="stat" data-entity="sensor.sigen_plant_daily_grid_export_energy"><small>Grid exported</small><b id="dayExport">—</b></button><button class="stat" data-entity="sensor.sigen_inverter_daily_charge_energy"><small>Battery charged</small><b id="dayCharge">—</b></button>
           <button class="stat" data-entity="sensor.sigen_inverter_daily_discharge_energy"><small>Battery discharged</small><b id="dayDischarge">—</b></button><button class="stat" id="socStat" data-entity="sensor.sigen_inverter_battery_state_of_charge"><small>Battery SOC</small><b id="daySoc">—</b></button>
-        </div></section><section class="panel"><h3>Battery level</h3><button class="link" id="socLevel" data-entity="sensor.sigen_inverter_battery_state_of_charge"><strong id="socLarge">—</strong><div class="socbar"><div class="socfill" id="socFill"></div></div></button><button class="link muted" id="capacity" title="Show stored energy today"></button></section>
+        </div></section><section class="panel"><h3>Battery level</h3><button class="link" id="socLevel" data-entity="sensor.sigen_inverter_battery_state_of_charge"><strong id="socLarge">—</strong><div class="socbar"><div class="socfill" id="socFill"></div></div></button><button class="link muted" id="capacity" title="Show stored energy today"><span id="capacityText"></span></button></section>
       </aside></div>
       <section class="panel chartpanel"><div class="charthead"><h3>Power metrics · Today</h3><span class="muted" id="chartStatus">Loading history…</span></div>
       <div class="legend">${legend}</div>
@@ -207,6 +208,8 @@ class SigenergyFlowCard extends HTMLElement {
       <section class="panel"><div class="loads" id="homeLoads"></div></section>
     </div></dialog>`;
         this.root = this.shadowRoot;
+        this._loadRows = new Map();
+        this._loadsEmpty = null;
         this._flowItems = Object.keys(FLOWS).map(id => {
             const group = this._id(id);
             return { id, group, wire: group.querySelector('.wire'), length: 0, glow: group.querySelector('.glow'), comets: [...group.querySelectorAll('.comet')], pos: 0 };
@@ -297,8 +300,12 @@ class SigenergyFlowCard extends HTMLElement {
         const s = this._hass?.states[id]?.state;
         return s === undefined || s === null || s === '' || ['unknown', 'unavailable', 'none'].includes(String(s).toLowerCase()) ? null : (Number.isFinite(Number(s)) ? Number(s) : null)
     }
+    // Rewriting unchanged text under the pointer between press and release cancels the click.
     _text(id, v) {
-        this._id(id).textContent = v
+        this._setText(this._id(id), v);
+    }
+    _setText(el, v) {
+        if (el.textContent !== String(v)) el.textContent = v;
     }
     // Value in kW or kWh when the entity reports W, Wh, MW or MWh.
     _scaled(id) {
@@ -320,20 +327,37 @@ class SigenergyFlowCard extends HTMLElement {
         }).sort((a, b) => (b.kw ?? -Infinity) - (a.kw ?? -Infinity));
         const measured = loads.reduce((sum, l) => sum + Math.max(0, l.kw ?? 0), 0);
         const scale = Math.max(home ?? 0, measured, .001);
-        const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-        const row = (l, other) => {
-            const share = l.kw === null ? null : Math.max(0, l.kw) / scale;
-            const pct = l.kw === null || home === null || home <= 0 ? '' : `${Math.round(Math.max(0, l.kw) / home * 100)}%`;
-            return `<button class="load${other ? ' other' : ''}"${other ? ' tabindex="-1"' : ` data-entity="${esc(l.entity)}" title="${esc(l.entity)}"`}>
-              <span class="name">${l.icon ? `<ha-icon icon="${esc(l.icon)}"></ha-icon>` : ''}<span>${esc(l.name)}</span></span><span>${l.kw === null ? '—' : `${l.kw.toFixed(2)} kW`}</span><span class="pct">${pct}</span>
-              <span class="bar"><i style="width:${share === null ? 0 : (share * 100).toFixed(1)}%"></i></span></button>`;
-        };
         const other = home === null ? null : home - measured;
         const drawing = loads.filter(l => l.kw !== null && l.kw >= .005);
-        this._id('homeLoads').innerHTML = (drawing.length ? drawing.map(l => row(l)).join('') : '<div class="muted">No listed load is drawing power</div>')
-            + (other !== null && other >= .005 ? row({ name: 'Other (unmeasured)', kw: other }, true) : '');
+        const rows = drawing.map(l => this._loadRow(l, l.entity, scale, home));
+        if (!drawing.length) rows.push(this._loadsEmpty ??= Object.assign(document.createElement('div'), { className: 'muted', textContent: 'No listed load is drawing power' }));
+        if (other !== null && other >= .005) rows.push(this._loadRow({ name: 'Other (unmeasured)', icon: '', kw: other }, null, scale, home));
+        const list = this._id('homeLoads');
+        if (rows.length !== list.children.length || rows.some((row, i) => row !== list.children[i])) list.replaceChildren(...rows);
         this._text('homeTotal', this._power(home));
         this._text('homeMeasured', home === null || home <= 0 ? '' : `Measured ${measured.toFixed(2)} kW · ${Math.round(Math.min(measured / home, 1) * 100)}% of home consumption`);
+    }
+    // Rows are kept per entity and updated in place, so a click is not lost to a refresh.
+    _loadRow(load, entity, scale, home) {
+        const key = entity ?? '';
+        let row = this._loadRows.get(key);
+        if (!row) {
+            row = document.createElement('button');
+            row.className = entity ? 'load' : 'load other';
+            if (entity) Object.assign(row.dataset, { entity }), row.title = entity;
+            else row.tabIndex = -1;
+            row.innerHTML = '<span class="name"><span></span></span><span></span><span class="pct"></span><span class="bar"><i></i></span>';
+            this._loadRows.set(key, row);
+        }
+        const [name, value, pct, bar] = row.children;
+        let icon = name.querySelector('ha-icon');
+        if (load.icon && !icon) name.prepend(icon = document.createElement('ha-icon'));
+        if (icon && icon.getAttribute('icon') !== load.icon) load.icon ? icon.setAttribute('icon', load.icon) : icon.remove();
+        this._setText(name.lastElementChild, load.name);
+        this._setText(value, `${load.kw.toFixed(2)} kW`);
+        this._setText(pct, home === null || home <= 0 ? '' : `${Math.round(Math.max(0, load.kw) / home * 100)}%`);
+        bar.firstChild.style.width = `${(Math.max(0, load.kw) / scale * 100).toFixed(1)}%`;
+        return row;
     }
     _updatePv() {
         if (!this._hass || !this._id('pvDialog').open) return;
@@ -505,7 +529,7 @@ class SigenergyFlowCard extends HTMLElement {
         this._text('socLarge', soc === null ? '—' : `${soc.toFixed(0)}%`);
         this._id('socFill').style.width = `${Math.min(100, Math.max(0, soc ?? 0))}%`;
         const cap = n('sensor.sigen_plant_rated_energy_capacity');
-        this._text('capacity', cap === null ? '' : `${((soc ?? 0) * cap / 100).toFixed(1)} of ${cap.toFixed(1)} kWh`);
+        this._text('capacityText', cap === null ? '' : `${((soc ?? 0) * cap / 100).toFixed(1)} of ${cap.toFixed(1)} kWh`);
         // SigenStor's AC output: solar less battery charging (positive battery power) less DC charging.
         const inverter = pv !== null && bat !== null ? pv - bat - (dc ?? 0) : home !== null && grid !== null ? home - grid : null;
         this._flow('solarFlow', pv);
