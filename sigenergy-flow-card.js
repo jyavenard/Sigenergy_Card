@@ -1,11 +1,54 @@
-/* Sigenergy Flow Card v42 — standalone Home Assistant Lovelace custom card */
+/* Sigenergy Flow Card v43 — standalone Home Assistant Lovelace custom card */
 
 // Every coordinate below (artwork, wires, label anchors) is in pixels of bg_villa_pv.png (1010x858).
 // The artwork and the wires share one SVG viewBox, so they scale together at any card width.
 const VIEW = { x: -340, y: -70, w: 1440, h: 1080 };
 
-const AC_POWER = 'sensor.sigen_ac_charger_charging_power';
-const DC_POWER = 'sensor.sigen_inverter_dc_charger_output_power';
+// Default entities for each `entities:` key in the card config, in priority order.
+// Plant sensors are the primary source (they combine every inverter and battery);
+// inverter sensors are the secondary / fallback source, used only when the plant sensor is unavailable.
+// A key set in the config replaces its defaults entirely; `false` hides that item.
+const DEFAULT_ENTITIES = {
+    pv_power: ['sensor.sigen_plant_pv_power'],
+    home_power: ['sensor.sigen_plant_consumed_power'],
+    battery_power: ['sensor.sigen_plant_battery_power', 'sensor.sigen_inverter_battery_power'],
+    battery_soc: ['sensor.sigen_plant_battery_state_of_charge', 'sensor.sigen_inverter_battery_state_of_charge'],
+    battery_capacity: ['sensor.sigen_plant_rated_energy_capacity'],
+    grid_import_power: ['sensor.sigen_plant_grid_import_power'],
+    grid_export_power: ['sensor.sigen_plant_grid_export_power'],
+    phase_mode: ['switch.sigen_plant_independent_phase_power_control'],
+    ac_charger_power: ['sensor.sigen_ac_charger_charging_power'],
+    ac_charger_state: ['sensor.sigen_ac_charger_system_state'],
+    ac_charger_total_energy: ['sensor.sigen_ac_charger_total_energy_consumed'],
+    ac_charger_vehicle_soc: [],
+    ac_charger_vehicle_range: [],
+    dc_charger_power: ['sensor.sigen_inverter_dc_charger_output_power'],
+    dc_charger_vehicle_soc: ['sensor.sigen_inverter_dc_charger_vehicle_soc'],
+    dc_charger_limit: ['number.sigen_inverter_dc_charger_max_charging_power_limit'],
+    ac_charger_lifetime_charged_energy: ['sensor.sigen_plant_total_charged_energy_of_the_evac'],
+    ac_charger_lifetime_discharged_energy: ['sensor.sigen_plant_total_discharged_energy_of_the_evac'],
+    dc_charger_lifetime_charged_energy: ['sensor.sigen_plant_total_charged_energy_of_the_evdc'],
+    dc_charger_lifetime_discharged_energy: ['sensor.sigen_plant_total_discharged_energy_of_the_evdc'],
+    // PV Strings dialog: Total row (Sigenergy PV inputs only) and the third-party PV row.
+    pv_strings_power: ['sensor.sigen_plant_sigen_pv_power'],
+    pv_strings_lifetime_energy: ['sensor.sigen_plant_total_generation_of_self_pv', 'sensor.sigen_plant_total_pv_generation', 'sensor.sigen_inverter_total_pv_energy'],
+    third_party_pv_power: ['sensor.sigen_plant_third_party_pv_power'],
+    third_party_pv_lifetime_energy: ['sensor.sigen_plant_total_generation_of_third_party_inverter'],
+    daily_pv_energy: ['sensor.sigen_plant_daily_pv_energy', 'sensor.sigen_inverter_daily_pv_energy'],
+    daily_grid_import_energy: ['sensor.sigen_plant_daily_grid_import_energy'],
+    daily_grid_export_energy: ['sensor.sigen_plant_daily_grid_export_energy'],
+    daily_battery_charge_energy: ['sensor.sigen_plant_daily_battery_charge_energy', 'sensor.sigen_inverter_daily_charge_energy'],
+    daily_battery_discharge_energy: ['sensor.sigen_plant_daily_battery_discharge_energy', 'sensor.sigen_inverter_daily_discharge_energy'],
+};
+const PV_KEYS = ['voltage', 'current', 'power', 'daily_energy', 'accumulated_energy'];
+// Today's energy tiles: [value element id, entities key, label].
+const DAILY_TILES = [
+    ['dayPv', 'daily_pv_energy', 'Solar produced'],
+    ['dayImport', 'daily_grid_import_energy', 'Grid imported'],
+    ['dayExport', 'daily_grid_export_energy', 'Grid exported'],
+    ['dayCharge', 'daily_battery_charge_energy', 'Battery charged'],
+    ['dayDischarge', 'daily_battery_discharge_energy', 'Battery discharged'],
+];
 
 // [file, x, y, width, height, id]; placement matches the SigenCloud app's composition.
 const ART_BACK = [
@@ -29,13 +72,13 @@ const GROUND = '-700,573 598,97 1559,527 474,1231';
 
 const FLOW_COLOR = '#63d6c1';
 const CHART_SERIES = [
-    { id: 'sensor.sigen_plant_pv_power', color: '#ead66c', name: 'Solar' },
-    { id: 'sensor.sigen_inverter_battery_power', color: '#69d4d1', name: 'Battery' },
-    { id: 'sensor.sigen_plant_grid_import_power', color: '#8d8bff', name: 'Grid' },
-    { id: 'sensor.sigen_plant_grid_export_power', color: '#8d8bff', name: 'Grid', negate: true },
-    { id: AC_POWER, color: '#efa66a', name: 'AC' },
-    { id: DC_POWER, color: '#c28aff', name: 'DC' },
-    { id: 'sensor.sigen_plant_consumed_power', color: '#c7d8df', name: 'Home' },
+    { key: 'pv_power', color: '#ead66c', name: 'Solar' },
+    { key: 'battery_power', color: '#69d4d1', name: 'Battery' },
+    { key: 'grid_import_power', color: '#8d8bff', name: 'Grid' },
+    { key: 'grid_export_power', color: '#8d8bff', name: 'Grid', negate: true },
+    { key: 'ac_charger_power', color: '#efa66a', name: 'AC', optional: true },
+    { key: 'dc_charger_power', color: '#c28aff', name: 'DC', optional: true },
+    { key: 'home_power', color: '#c7d8df', name: 'Home' },
 ];
 const PV_COLORS = ['#6bd36b', '#5fd4dc', '#6a78f0', '#a868f0', '#efa66a', '#ead66c'];
 const COMET_LAYERS = [1, .78, .56, .36, .18];
@@ -50,11 +93,26 @@ class SigenergyFlowCard extends HTMLElement {
         };
     }
     setConfig(config) {
+        const entities = config.entities ?? {};
+        if (typeof entities !== 'object' || Array.isArray(entities)) throw new Error('entities must be a mapping of key: entity_id');
+        for (const [key, value] of Object.entries(entities)) {
+            if (!(key in DEFAULT_ENTITIES)) throw new Error(`Unknown entities key "${key}". Valid keys: ${Object.keys(DEFAULT_ENTITIES).join(', ')}`);
+            if (value !== false && value !== null && (typeof value !== 'string' || !value.includes('.'))) throw new Error(`entities.${key} must be an entity ID or false`);
+        }
         this.config = {
             pv_strings: ['PV1', 'PV2', 'PV3', 'PV4'],
             home_entities: [],
             ...config
         };
+        // Each string is a name, which reads the Sigenergy pattern sensor.sigen_inverter_pv<n>_*, or an object
+        // { name, voltage, current, power, daily_energy, accumulated_energy } that uses only the keys it lists.
+        // A string none of whose entities exist in Home Assistant is treated as not fitted and hidden.
+        this._pv = this.config.pv_strings.map((item, i) => {
+            const object = typeof item === 'object' && item !== null;
+            const pv = { name: (object ? item.name : item) ?? `PV${i + 1}` };
+            for (const key of PV_KEYS) pv[key] = object ? (typeof item[key] === 'string' ? item[key] : null) : `sensor.sigen_inverter_pv${i + 1}_${key}`;
+            return pv;
+        });
         this._build();
         if (this.isConnected && !this._flowFrame) this._startFlowAnimation();
     }
@@ -169,17 +227,15 @@ class SigenergyFlowCard extends HTMLElement {
             ? `<button id="homeButton" title="Show home power usage"><strong id="home">—</strong><small>HOME ›</small></button>`
             : `<strong id="home">—</strong><small>HOME</small>`}</div>
         <div class="node below" style="left:${atX(395)};top:${atY(878)}"><strong id="battery">—</strong><small>SigenStor · <span id="soc">—</span></small><em id="battStatus"></em></div>
-        <div class="node below" style="left:${atX(800)};top:${atY(878)}"><strong id="grid">—</strong><small>GRID</small><em id="gridStatus"></em></div>
+        <div class="node below" style="left:${atX(800)};top:${atY(878)}"><strong id="grid">—</strong><small>GRID</small><em id="gridStatus"></em><em id="phaseMode"></em></div>
         <div class="sidecol" id="chargers" style="left:${atX(-300)};top:${atY(190)};min-height:calc(370 * var(--u))">
-          <div class="node" id="acNode"><strong id="ac">—</strong><small>AC CHARGER</small><em id="acSoc"></em></div>
-          <div class="node" id="dcNode"><button id="dcButton" title="Adjust DC charging power limit"><strong id="dc">—</strong><small>DC CHARGER ⚙</small><em id="dcSoc"></em></button></div>
+          <div class="node" id="acNode"><strong id="ac">—</strong><small>AC CHARGER</small><em id="acSoc"></em><em id="acTotal"></em><em id="acLifetime"></em></div>
+          <div class="node" id="dcNode"><button id="dcButton" title="Adjust DC charging power limit"><strong id="dc">—</strong><small>DC CHARGER<span id="dcGear"> ⚙</span></small><em id="dcSoc"></em><em id="dcLifetime"></em></button></div>
         </div>
       </div></section><aside class="sidebar">
         <section class="panel"><h3>Today's energy</h3><div class="stats">
-          <button class="stat" data-entity="sensor.sigen_inverter_daily_pv_energy"><small>Solar produced</small><b id="dayPv">—</b></button><button class="stat" data-entity="sensor.sigen_plant_daily_grid_import_energy"><small>Grid imported</small><b id="dayImport">—</b></button>
-          <button class="stat" data-entity="sensor.sigen_plant_daily_grid_export_energy"><small>Grid exported</small><b id="dayExport">—</b></button><button class="stat" data-entity="sensor.sigen_inverter_daily_charge_energy"><small>Battery charged</small><b id="dayCharge">—</b></button>
-          <button class="stat" data-entity="sensor.sigen_inverter_daily_discharge_energy"><small>Battery discharged</small><b id="dayDischarge">—</b></button><button class="stat" id="socStat" data-entity="sensor.sigen_inverter_battery_state_of_charge"><small>Battery SOC</small><b id="daySoc">—</b></button>
-        </div></section><section class="panel"><h3>Battery level</h3><button class="link" id="socLevel" data-entity="sensor.sigen_inverter_battery_state_of_charge"><strong id="socLarge">—</strong><div class="socbar"><div class="socfill" id="socFill"></div></div></button><button class="link muted" id="capacity" title="Show stored energy today"><span id="capacityText"></span></button></section>
+          ${DAILY_TILES.map(([id, , label]) => `<button class="stat"><small>${label}</small><b id="${id}">—</b></button>`).join('')}<button class="stat" id="socStat"><small>Battery SOC</small><b id="daySoc">—</b></button>
+        </div></section><section class="panel"><h3>Battery level</h3><button class="link" id="socLevel"><strong id="socLarge">—</strong><div class="socbar"><div class="socfill" id="socFill"></div></div></button><button class="link muted" id="capacity" title="Show stored energy today"><span id="capacityText"></span></button></section>
       </aside></div>
       <section class="panel chartpanel"><div class="charthead"><h3>Power metrics · Today</h3><span class="muted" id="chartStatus">Loading history…</span></div>
       <div class="legend">${legend}</div>
@@ -189,11 +245,11 @@ class SigenergyFlowCard extends HTMLElement {
       <div class="dlg-head"><h2 id="pvTitle">PV Strings</h2><button id="pvClose" title="Close" aria-label="Close">✕</button></div>
       <section class="panel"><h3>PV real time info</h3><div class="pv-wrap"><table class="pv-table">
         <thead><tr><th></th><th>Voltage<br>(V)</th><th>Current<br>(A)</th><th>Power<br>(kW)</th><th>Today<br>(kWh)</th><th>Lifetime<br>(kWh)</th></tr></thead>
-        <tbody>${this.config.pv_strings.map((name, i) => `<tr><th scope="row"><i class="dot" style="background:${PV_COLORS[i % PV_COLORS.length]}"></i>${name}</th>${['voltage', 'current', 'power', 'daily_energy', 'accumulated_energy'].map(k => `<td id="pv${i}_${k}">—</td>`).join('')}</tr>`).join('')}</tbody>
-        <tfoot><tr><th scope="row">Total</th><td></td><td></td><td id="pvTotal_power">—</td><td id="pvTotal_daily_energy">—</td><td id="pvTotal_accumulated_energy">—</td></tr></tfoot>
+        <tbody>${this._pv.map(({ name }, i) => `<tr id="pvRow${i}"><th scope="row"><i class="dot" style="background:${PV_COLORS[i % PV_COLORS.length]}"></i>${name}</th>${['voltage', 'current', 'power', 'daily_energy', 'accumulated_energy'].map(k => `<td id="pv${i}_${k}">—</td>`).join('')}</tr>`).join('')}</tbody>
+        <tfoot><tr><th scope="row">Total</th><td></td><td></td><td id="pvTotal_power">—</td><td id="pvTotal_daily_energy">—</td><td id="pvTotal_accumulated_energy">—</td></tr><tr id="pvThirdRow" hidden><th scope="row">Third-party PV</th><td></td><td></td><td id="pvThird_power">—</td><td></td><td id="pvThird_accumulated_energy">—</td></tr></tfoot>
       </table></div></section>
       <section class="panel"><div class="charthead"><h3>PV power (kW) · Today</h3><span class="muted" id="pvChartStatus"></span></div>
-      <div class="legend">${this.config.pv_strings.map((name, i) => `<span><i class="dot" style="background:${PV_COLORS[i % PV_COLORS.length]}"></i>${name}</span>`).join('')}</div>
+      <div class="legend">${this._pv.map(({ name }, i) => `<span id="pvLegend${i}"><i class="dot" style="background:${PV_COLORS[i % PV_COLORS.length]}"></i>${name}</span>`).join('')}</div>
       <div class="chart-wrap"><svg id="pvChart"></svg><div class="tip" id="pvChartTip" hidden></div></div></section>
     </div></dialog>
     <dialog id="energyDialog" aria-labelledby="energyTitle"><div class="dlg">
@@ -234,7 +290,7 @@ class SigenergyFlowCard extends HTMLElement {
             homeDialog.close();
             this._moreInfo(entityId);
         });
-        for (const stat of this.root.querySelectorAll('.stat[data-entity], .link[data-entity]'))
+        for (const stat of this.root.querySelectorAll('.stat, #socLevel'))
             stat.addEventListener('click', () => this._moreInfo(stat.dataset.entity));
         const energyDialog = this._id('energyDialog');
         this._id('capacity').addEventListener('click', () => {
@@ -252,17 +308,7 @@ class SigenergyFlowCard extends HTMLElement {
             svg.addEventListener('pointerdown', show);
             svg.addEventListener('pointerleave', () => this._hideHover(svg, box));
         }
-        this._id('dcButton').addEventListener('click', () => {
-            const ev = new CustomEvent('hass-more-info',{
-                bubbles: true,
-                composed: true,
-                detail: {
-                    entityId: 'number.sigen_inverter_dc_charger_max_charging_power_limit'
-                }
-            });
-            this.dispatchEvent(ev);
-        }
-        );
+        this._id('dcButton').addEventListener('click', () => this._moreInfo(this._ent('dc_charger_limit')));
         if (this._flowStates) for (const id of Object.keys(this._flowStates)) this._applyFlowClass(id);
     }
     _observeCharts() {
@@ -291,13 +337,22 @@ class SigenergyFlowCard extends HTMLElement {
         return this.root.getElementById(id)
     }
     _moreInfo(entityId) {
+        if (!entityId) return;
         this.dispatchEvent(new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId } }));
     }
     _has(id) {
-        return !!this._hass?.states[id];
+        return !!id && !!this._hass?.states[id];
+    }
+    // Entity for an `entities:` key: the configured one, else the first available default; null when disabled.
+    _ent(key) {
+        const set = this.config.entities?.[key];
+        if (set === false || set === null) return null;
+        if (set) return set;
+        const ids = DEFAULT_ENTITIES[key];
+        return ids.find(id => !['unknown', 'unavailable', undefined].includes(this._hass?.states[id]?.state)) ?? ids[0] ?? null;
     }
     _num(id) {
-        const s = this._hass?.states[id]?.state;
+        const s = id ? this._hass?.states[id]?.state : undefined;
         return s === undefined || s === null || s === '' || ['unknown', 'unavailable', 'none'].includes(String(s).toLowerCase()) ? null : (Number.isFinite(Number(s)) ? Number(s) : null)
     }
     // Rewriting unchanged text under the pointer between press and release cancels the click.
@@ -310,15 +365,21 @@ class SigenergyFlowCard extends HTMLElement {
     // Value in kW or kWh when the entity reports W, Wh, MW or MWh.
     _scaled(id) {
         const v = this._num(id);
-        const factor = { W: .001, Wh: .001, MW: 1000, MWh: 1000 }[this._hass?.states[id]?.attributes?.unit_of_measurement] ?? 1;
-        return v === null ? null : v * factor;
+        return v === null ? null : v * this._factor(id);
+    }
+    _factor(id) {
+        return { W: .001, Wh: .001, MW: 1000, MWh: 1000 }[this._hass?.states[id]?.attributes?.unit_of_measurement] ?? 1;
+    }
+    // Battery power with charging positive, whatever the source's sign convention.
+    _batterySign() {
+        return this.config.battery_power_invert ? -1 : 1;
     }
     _pvEntity(i, key) {
-        return `sensor.sigen_inverter_pv${i + 1}_${key}`;
+        return this._pv[i][key];
     }
     _updateHome() {
         if (!this._hass || !this._id('homeDialog').open) return;
-        const home = this._scaled('sensor.sigen_plant_consumed_power');
+        const home = this._scaled(this._ent('home_power'));
         const loads = this.config.home_entities.map(item => {
             const entity = typeof item === 'string' ? item : item.entity;
             const name = (typeof item === 'object' && item.name) || this._hass.states[entity]?.attributes?.friendly_name || entity;
@@ -359,29 +420,56 @@ class SigenergyFlowCard extends HTMLElement {
         bar.firstChild.style.width = `${(Math.max(0, load.kw) / scale * 100).toFixed(1)}%`;
         return row;
     }
+    // A string is fitted when at least one of its entities exists in Home Assistant.
+    _pvFitted(i) {
+        return PV_KEYS.some(key => this._has(this._pv[i][key]));
+    }
     _updatePv() {
         if (!this._hass || !this._id('pvDialog').open) return;
         const digits = { voltage: 1, current: 2, power: 2, daily_energy: 2, accumulated_energy: 2 };
-        const totals = { power: null, daily_energy: null, accumulated_energy: null };
-        this.config.pv_strings.forEach((_, i) => {
+        const sums = { power: null, daily_energy: null, accumulated_energy: null };
+        this._pv.forEach((_, i) => {
+            const fitted = this._pvFitted(i);
+            this._id(`pvRow${i}`).hidden = !fitted;
+            this._id(`pvLegend${i}`).hidden = !fitted;
+            if (!fitted) return;
             for (const key of Object.keys(digits)) {
-                const v = key === 'voltage' || key === 'current' ? this._num(this._pvEntity(i, key)) : this._scaled(this._pvEntity(i, key));
+                const id = this._pvEntity(i, key);
+                const v = key === 'voltage' || key === 'current' ? this._num(id) : this._scaled(id);
                 this._text(`pv${i}_${key}`, v === null ? '—' : v.toFixed(digits[key]));
-                if (key in totals && v !== null) totals[key] = (totals[key] ?? 0) + v;
+                if (key in sums && v !== null) sums[key] = (sums[key] ?? 0) + v;
             }
         });
+        // Total row: the system's own PV sensors when available, otherwise the sum of the strings above.
+        const kw = key => this._scaled(this._ent(key));
+        // sensor.sigen_plant_total_pv_generation covers all PV in the plant, so the third-party share is removed
+        // to keep the Total row to the Sigenergy strings; when the third-party total is unknown it is used as-is.
+        let lifetime = kw('pv_strings_lifetime_energy');
+        const thirdLifetime = kw('third_party_pv_lifetime_energy');
+        if (lifetime !== null && thirdLifetime !== null && !this.config.entities?.pv_strings_lifetime_energy
+            && this._ent('pv_strings_lifetime_energy') === 'sensor.sigen_plant_total_pv_generation') lifetime -= thirdLifetime;
+        const totals = {
+            power: kw('pv_strings_power') ?? sums.power,
+            daily_energy: kw('daily_pv_energy') ?? sums.daily_energy,
+            accumulated_energy: lifetime ?? sums.accumulated_energy,
+        };
         for (const [key, v] of Object.entries(totals)) this._text(`pvTotal_${key}`, v === null ? '—' : v.toFixed(2));
+        const thirdPower = this._ent('third_party_pv_power'), thirdTotal = this._ent('third_party_pv_lifetime_energy');
+        this._id('pvThirdRow').hidden = !this._has(thirdPower) && !this._has(thirdTotal);
+        const tp = this._scaled(thirdPower), tt = this._scaled(thirdTotal);
+        this._text('pvThird_power', tp === null ? '—' : tp.toFixed(2));
+        this._text('pvThird_accumulated_energy', tt === null ? '—' : tt.toFixed(2));
     }
     // Stored energy is SOC × rated capacity; no sensor reports it directly.
     _updateEnergy() {
         if (!this._hass || !this._id('energyDialog').open) return;
-        const soc = this._num(this._socEntity), cap = this._num('sensor.sigen_plant_rated_energy_capacity');
+        const soc = this._num(this._socEntity), cap = this._scaled(this._ent('battery_capacity'));
         this._text('energyNow', soc === null || cap === null ? '—' : `${(soc * cap / 100).toFixed(1)} kWh`);
-        this._text('energyOf', cap === null ? '' : `of ${cap.toFixed(1)} kWh rated capacity${soc === null ? '' : ` · ${soc.toFixed(0)}%`}`);
+        this._text('energyOf', cap === null ? '' : `of ${cap.toFixed(1)} kWh rated capacity${soc === null ? '' : ` · ${soc.toFixed(1)}%`}`);
     }
     async _loadEnergyHistory() {
         if (!this._hass) return;
-        const cap = this._num('sensor.sigen_plant_rated_energy_capacity');
+        const cap = this._scaled(this._ent('battery_capacity'));
         if (cap === null) {
             this._text('energyChartStatus', 'Rated capacity unavailable');
             return;
@@ -389,6 +477,10 @@ class SigenergyFlowCard extends HTMLElement {
         const day = new Date();
         day.setHours(0, 0, 0, 0);
         this._text('energyChartStatus', 'Loading history…');
+        if (!this._socEntity) {
+            this._text('energyChartStatus', 'Battery SOC not configured');
+            return;
+        }
         try {
             const query = `history/period/${encodeURIComponent(day.toISOString())}?filter_entity_id=${encodeURIComponent(this._socEntity)}&minimal_response&no_attributes`;
             const [points] = this._series(await this._hass.callApi('GET', query), [this._socEntity]);
@@ -404,13 +496,18 @@ class SigenergyFlowCard extends HTMLElement {
         if (!this._hass) return;
         const day = new Date();
         day.setHours(0, 0, 0, 0);
-        const ids = this.config.pv_strings.map((_, i) => this._pvEntity(i, 'power'));
+        const strings = this._pv.map((pv, i) => ({ ...pv, color: PV_COLORS[i % PV_COLORS.length] })).filter(pv => this._has(pv.power));
+        const ids = strings.map(pv => pv.power);
+        if (!ids.length) {
+            this._text('pvChartStatus', 'No string power entities configured');
+            return;
+        }
         this._text('pvChartStatus', 'Loading history…');
         try {
             const query = `history/period/${encodeURIComponent(day.toISOString())}?filter_entity_id=${encodeURIComponent(ids.join(','))}&minimal_response&no_attributes`;
             const series = this._series(await this._hass.callApi('GET', query), ids).map((points, i) => {
-                const factor = { W: .001, MW: 1000 }[this._hass.states[ids[i]]?.attributes?.unit_of_measurement] ?? 1;
-                return { points: points.map(p => ({ t: p.t, v: p.v * factor })), color: PV_COLORS[i % PV_COLORS.length], name: this.config.pv_strings[i] };
+                const factor = this._factor(ids[i]);
+                return { points: points.map(p => ({ t: p.t, v: p.v * factor })), color: strings[i].color, name: strings[i].name };
             });
             const hasData = this._showChart(this._id('pvChart'), series, day.getTime(), false);
             this._text('pvChartStatus', hasData ? 'Midnight → now' : 'No recorded string history today');
@@ -421,6 +518,14 @@ class SigenergyFlowCard extends HTMLElement {
     }
     _power(v) {
         return v === null ? '—' : `${Math.abs(v).toFixed(2)} kW`
+    }
+    _kwh(v) {
+        return `${v.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh`;
+    }
+    // Lifetime charged / discharged; discharged (V2G / V2H) is left out while it reads 0.
+    _lifetime(charged, discharged) {
+        const parts = [charged === null ? '' : `↓ ${this._kwh(charged)}`, discharged === null || discharged === 0 ? '' : `↑ ${this._kwh(discharged)}`].filter(Boolean);
+        return parts.length ? `Lifetime ${parts.join(' · ')}` : '';
     }
     _energy(v) {
         return v === null ? '—' : `${v.toFixed(2)} kWh`
@@ -482,15 +587,19 @@ class SigenergyFlowCard extends HTMLElement {
         if (!this._hass)
             return;
         const n = x => this._num(x)
-          , pv = n('sensor.sigen_plant_pv_power')
-          , home = n('sensor.sigen_plant_consumed_power');
-        const bat = n('sensor.sigen_inverter_battery_power') ?? n('sensor.sigen_plant_battery_power');
-        const soc = n('sensor.sigen_inverter_battery_state_of_charge') ?? n('sensor.sigen_plant_battery_state_of_charge');
-        const imp = n('sensor.sigen_plant_grid_import_power')
-          , exp = n('sensor.sigen_plant_grid_export_power');
-        const ac = n(AC_POWER)
-          , dc = n(DC_POWER);
-        const hasAc = this._has(AC_POWER), hasDc = this._has(DC_POWER);
+          , e = key => this._ent(key)
+          , kw = key => this._scaled(this._ent(key))   // kW or kWh, whatever unit the entity reports
+          , pv = kw('pv_power')
+          , home = kw('home_power');
+        const batRaw = kw('battery_power'), bat = batRaw === null ? null : batRaw * this._batterySign();
+        const socEntity = e('battery_soc');
+        const soc = n(socEntity);
+        const imp = kw('grid_import_power')
+          , exp = kw('grid_export_power');
+        const ac = kw('ac_charger_power')
+          , dc = kw('dc_charger_power');
+        const hasAc = this._has(e('ac_charger_power')), hasDc = this._has(e('dc_charger_power'));
+        this._id('dcGear').hidden = !e('dc_charger_limit');
         this._id('acNode').hidden = !hasAc;
         this._id('dcNode').hidden = !hasDc;
         this._id('chargers').hidden = !hasAc && !hasDc;
@@ -501,34 +610,44 @@ class SigenergyFlowCard extends HTMLElement {
         this._text('pv', this._power(pv));
         this._text('home', this._power(home));
         this._text('battery', this._power(bat));
-        this._text('soc', soc === null ? '—' : `${soc.toFixed(0)}%`);
+        this._text('soc', soc === null ? '—' : `${soc.toFixed(1)}%`);
         this._text('battStatus', bat === null ? '' : bat > 0.025 ? 'Charging' : bat < -.025 ? 'Discharging' : 'Idle');
         this._text('grid', this._power(grid));
         this._text('gridStatus', grid === null ? '' : grid > 0.025 ? 'Importing' : grid < -.025 ? 'Exporting' : 'Idle');
+        const phase = this._hass.states[e('phase_mode')]?.state;
+        this._text('phaseMode', phase === 'on' ? 'Power Per Phase Mode' : phase === 'off' ? 'Total Power Mode' : '');
+        const acTotal = kw('ac_charger_total_energy');
+        this._text('acTotal', acTotal === null ? '' : `${this._kwh(acTotal)} consumed`);
+        this._text('acLifetime', this._lifetime(kw('ac_charger_lifetime_charged_energy'), kw('ac_charger_lifetime_discharged_energy')));
+        this._text('dcLifetime', this._lifetime(kw('dc_charger_lifetime_charged_energy'), kw('dc_charger_lifetime_discharged_energy')));
         this._text('ac', this._power(ac));
         this._text('dc', this._power(dc));
-        const car = this.config.ac_charger_soc ? n(this.config.ac_charger_soc) : null
-          , range = this.config.ac_charger_range ? n(this.config.ac_charger_range) : null
-          , dcsoc = n('sensor.sigen_inverter_dc_charger_vehicle_soc');
-        const acState = this._hass.states['sensor.sigen_ac_charger_system_state']?.state?.split('-')[0];
-        const carText = !this.config.ac_charger_soc ? '' : car === null ? 'Vehicle SOC unavailable' : `${car.toFixed(0)}%${range === null ? '' : ` · ${range.toFixed(0)} km`}`;
+        // ac_charger_soc / ac_charger_range at the top level are the original keys and still work.
+        const carEntity = e('ac_charger_vehicle_soc') ?? (this.config.entities?.ac_charger_vehicle_soc === undefined ? this.config.ac_charger_soc : null)
+          , rangeEntity = e('ac_charger_vehicle_range') ?? (this.config.entities?.ac_charger_vehicle_range === undefined ? this.config.ac_charger_range : null);
+        const car = carEntity ? n(carEntity) : null
+          , range = rangeEntity ? n(rangeEntity) : null
+          , dcsoc = n(e('dc_charger_vehicle_soc'));
+        const acState = this._hass.states[e('ac_charger_state')]?.state?.split('-')[0];
+        const carText = !carEntity ? '' : car === null ? 'Vehicle SOC unavailable' : `${car.toFixed(0)}%${range === null ? '' : ` · ${range.toFixed(0)} km`}`;
         this._text('acSoc', [acState && !['unknown', 'unavailable'].includes(acState) ? acState : '', carText].filter(Boolean).join(' · '));
         // The inverter reports 0% with no DC vehicle attached; a genuine 0% while charging is still shown.
         this._text('dcSoc', dcsoc === null || (dcsoc === 0 && (dc === null || dc < 0.025)) ? '' : `Vehicle SOC ${dcsoc.toFixed(0)}%`);
-        this._text('dayPv', this._energy(n('sensor.sigen_inverter_daily_pv_energy')));
-        this._text('dayImport', this._energy(n('sensor.sigen_plant_daily_grid_import_energy')));
-        this._text('dayExport', this._energy(n('sensor.sigen_plant_daily_grid_export_energy')));
-        this._text('dayCharge', this._energy(n('sensor.sigen_inverter_daily_charge_energy')));
-        this._text('dayDischarge', this._energy(n('sensor.sigen_inverter_daily_discharge_energy')));
-        this._text('daySoc', soc === null ? '—' : `${soc.toFixed(0)}%`);
-        const socEntity = n('sensor.sigen_inverter_battery_state_of_charge') !== null ? 'sensor.sigen_inverter_battery_state_of_charge' : 'sensor.sigen_plant_battery_state_of_charge';
-        this._id('socStat').dataset.entity = socEntity;
-        this._id('socLevel').dataset.entity = socEntity;
+        for (const [el, key] of DAILY_TILES) {
+            const id = e(key), tile = this._id(el).closest('.stat');
+            tile.hidden = !id;
+            if (!id) continue;
+            this._text(el, this._energy(this._scaled(id)));
+            tile.dataset.entity = id;
+        }
+        this._text('daySoc', soc === null ? '—' : `${soc.toFixed(1)}%`);
+        this._id('socStat').dataset.entity = socEntity ?? '';
+        this._id('socLevel').dataset.entity = socEntity ?? '';
         this._socEntity = socEntity;
         this._updateEnergy();
-        this._text('socLarge', soc === null ? '—' : `${soc.toFixed(0)}%`);
+        this._text('socLarge', soc === null ? '—' : `${soc.toFixed(1)}%`);
         this._id('socFill').style.width = `${Math.min(100, Math.max(0, soc ?? 0))}%`;
-        const cap = n('sensor.sigen_plant_rated_energy_capacity');
+        const cap = kw('battery_capacity');
         this._text('capacityText', cap === null ? '' : `${((soc ?? 0) * cap / 100).toFixed(1)} of ${cap.toFixed(1)} kWh`);
         // SigenStor's AC output: solar less battery charging (positive battery power) less DC charging.
         const inverter = pv !== null && bat !== null ? pv - bat - (dc ?? 0) : home !== null && grid !== null ? home - grid : null;
@@ -584,7 +703,8 @@ class SigenergyFlowCard extends HTMLElement {
         this._loading = true;
         const day = new Date();
         day.setHours(0, 0, 0, 0);
-        const specs = CHART_SERIES.filter(s => this._has(s.id) || (s.id !== AC_POWER && s.id !== DC_POWER));
+        const specs = CHART_SERIES.map(s => ({ ...s, id: this._ent(s.key) }))
+            .filter(s => s.id && (!s.optional || this._has(s.id)));
         const ids = specs.map(s => s.id);
         try {
             const query = `history/period/${encodeURIComponent(day.toISOString())}?filter_entity_id=${encodeURIComponent(ids.join(','))}&minimal_response&no_attributes`;
@@ -610,12 +730,16 @@ class SigenergyFlowCard extends HTMLElement {
             Battery: v => v > .005 ? 'charging' : v < -.005 ? 'discharging' : '',
             Grid: v => v > .005 ? 'import' : v < -.005 ? 'export' : '',
         };
-        const series = this._series(data, specs.map(s => s.id)).map((points, i) => ({
-            points: specs[i].negate ? points.map(p => ({ t: p.t, v: -p.v })) : points,
+        const series = this._series(data, specs.map(s => s.id)).map((points, i) => {
+            // Scale W/MW to kW, flip export, and apply battery_power_invert to the battery series.
+            const k = this._factor(specs[i].id) * (specs[i].negate ? -1 : 1) * (specs[i].key === 'battery_power' ? this._batterySign() : 1);
+            return {
+            points: k === 1 ? points : points.map(p => ({ t: p.t, v: p.v * k })),
             color: specs[i].color,
             name: specs[i].name,
             note: notes[specs[i].name]
-        }));
+        };
+        });
         if (!this._showChart(this._id('chart'), series, start, true))
             this._text('chartStatus', 'No recorded power history today');
     }
