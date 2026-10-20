@@ -426,9 +426,11 @@ class SigenergyFlowCard extends HTMLElement {
         const chargers = this._id('chargers');
         chargers.style.left = `${(READINGS.chargers[narrow ? 1 : 0] / SCENE.width * 100).toFixed(3)}%`;
         this._alignChargers(narrow);
-        // When the scene is taller than the photo, the SigenStor and GRID row drops into the spare room below it.
-        const drop = Math.max(0, Math.min((height - SCENE.height * scale) / 2 - 12, 70 * scale));
-        this.root.querySelector('.lower').style.transform = drop ? `translateY(${drop}px)` : '';
+        // When the scene is taller than the photo, the SigenStor and GRID row starts where the photo ends
+        // (the blurred band), as long as it keeps clear of the scene's bottom edge.
+        const lower = this.root.querySelector('.lower'), planeHeight = SCENE.height * scale, spare = (height - planeHeight) / 2;
+        const drop = narrow || spare <= 0 ? 0 : Math.max(0, Math.min((PHOTO.top + PHOTO.height) * scale - lower.offsetTop, planeHeight + spare - 12 - lower.offsetTop - lower.offsetHeight));
+        lower.style.transform = drop ? `translateY(${drop}px)` : '';
         for (const leader of this.root.querySelectorAll('.lowerLeader'))
             leader.setAttribute('d', leader.dataset.d.replace(/V([\d.]+)/, (_, end) => `V${+end + drop / scale}`));
     }
