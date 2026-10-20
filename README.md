@@ -288,7 +288,7 @@ With `show_phase_mode: true` (off by default), the card shows the inverter's pha
 
 ### AC and DC chargers
 
-Each charger's reading and chart series only appear if its power entity exists:
+Each charger's reading and chart series only appear if its power entity exists, and the charger on the garage wall is drawn only then:
 
 - AC charger: `sensor.sigen_ac_charger_charging_power`
 - DC charger: `sensor.sigen_inverter_dc_charger_output_power`
@@ -304,7 +304,7 @@ The DC charger's vehicle state of charge is hidden while the charger is idle and
 
 ## Changing the artwork
 
-The scene photos `images/house_day.png` and `images/house_night.png` are embedded in the card, each extended with a band above and below for the readings. After changing either, regenerate the embedded copy (requires [Pillow](https://python-pillow.org)):
+The scene photos `images/house_day.png` and `images/house_night.png` show the house without a car charger. The charger on the garage wall is a separate transparent image of the same size, `images/charger_day.png` and `images/charger_night.png`; the card draws it only when an AC or DC charger is present. `tools/embed-artwork.py` places each photo in the card's coordinates (a scale and offset measured against the first photo, kept in the tool), adds a short band above and below for the readings, scales each charger to the wall position, and embeds the result in the card. After changing any of the four, regenerate the embedded copy (requires [Pillow](https://python-pillow.org) and [NumPy](https://numpy.org)); if a new photo is framed differently, update its entry in `REGISTRATION` first:
 
 ```sh
 python3 tools/embed-artwork.py
@@ -312,11 +312,11 @@ python3 tools/embed-artwork.py
 
 ## Utilities
 
-Small Python scripts that query the system directly over Modbus TCP (port 502). They need [pymodbus](https://github.com/pymodbus-dev/pymodbus) and take the address of the Sigenergy system as their only argument, e.g. `./sigen_soc.py 192.168.1.50`.
+Small Python scripts in `tools/` that query the system directly over Modbus TCP (port 502). They need [pymodbus](https://github.com/pymodbus-dev/pymodbus) and take the address of the Sigenergy system as their only argument, e.g. `tools/sigen_soc.py 192.168.1.50`.
 
-- `sigen_soc.py`: prints the battery state of charge.
-- `sigen_powermode.py`: reports whether Independent Phase Control is active.
-- `sigen_evac.py`: scans Modbus device IDs to find the AC charger (EVAC) and prints its total energy consumed.
+- `tools/sigen_soc.py`: prints the battery state of charge.
+- `tools/sigen_powermode.py`: reports whether Independent Phase Control is active.
+- `tools/sigen_evac.py`: scans Modbus device IDs to find the AC charger (EVAC) and prints its total energy consumed.
 
 The card itself reads everything from Home Assistant entities (battery level, phase power mode and AC charger energy included), so it does not need these scripts; they are for use outside Home Assistant.
 
