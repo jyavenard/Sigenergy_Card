@@ -71,11 +71,12 @@ const BRANCHES = { homeBranch: 'homeFlow' };
 const LEADERS = ['M820 18 V200', 'M1110 18 V242', 'M712 498 V641', 'M1018 534 V641'];
 // Reading positions: [x, y, edge], where y is the reading's top or bottom edge. [lower] places the
 // SigenStor and GRID readings: the row's left edge, each reading's left edge, and the row's bottom edge.
+// [chargers] is the left edge of the charger readings, which are centred vertically.
 const READINGS = {
     pv: [832, 16, 'top'],
     home: [1122, 16, 'top'],
     lower: { left: 724, columns: [724, 1030], bottom: 628 },
-    chargers: [170, 204, 'top'],
+    chargers: 170,
 };
 
 const FLOW_COLOR = '#63d6c1';
@@ -219,7 +220,7 @@ class SigenergyFlowCard extends HTMLElement {
       .compact .sidecol .node{max-width:calc(260px * var(--s))}.compact .sidecol em{white-space:normal}
       .compact .lower .node+.node{max-width:calc(240px * var(--s))}.narrow .lower .node+.node{max-width:calc(150px * var(--s))}.compact .lower em{white-space:normal}.compact .lower .sep{display:none}.compact .lower #soc{display:block}
       .compact .node em span{display:block}.compact .node em span+span::before{content:none}
-      .sidecol{position:absolute;z-index:2;display:flex;flex-direction:column;justify-content:space-between;gap:max(14px,calc(24px * var(--s)));min-height:calc(184px * var(--s))}
+      .sidecol{position:absolute;top:50%;transform:translateY(-50%);z-index:2;display:flex;flex-direction:column;justify-content:space-between;gap:max(14px,calc(24px * var(--s)));min-height:calc(184px * var(--s))}
       .lower{position:absolute;z-index:2;display:grid;align-items:start}.lower .node{position:static}
       .sidecol .node{position:static;border-left:1px solid var(--leader);padding-left:max(6px,calc(10px * var(--s)))}
       .node button{all:unset;cursor:pointer;display:block}.node button:focus-visible{outline:2px solid #71d3d1}
@@ -282,7 +283,7 @@ class SigenergyFlowCard extends HTMLElement {
           <div class="node"><strong id="battery">—</strong><small>SigenStor<span class="sep"> · </span><span id="soc">—</span></small><em id="battStatus"></em></div>
           <div class="node"><strong id="grid">—</strong><small>GRID</small><em id="gridStatus"></em><em id="phaseMode"></em></div>
         </div>
-        <div class="sidecol" style="${placeAt(READINGS.chargers)}">
+        <div class="sidecol" style="left:${(READINGS.chargers / SCENE.width * 100).toFixed(3)}%">
           <div class="node" id="acNode"><strong id="ac">—</strong><small>AC CHARGER</small><em id="acSoc"></em><em id="acTotal"></em><em id="acLifetime" class="stack"></em></div>
           <div class="node" id="dcNode"><button id="dcButton" title="Adjust DC charging power limit"><strong id="dc">—</strong><small>DC CHARGER<span id="dcGear"> ⚙</span></small><em id="dcSoc"></em><em id="dcLifetime" class="stack"></em></button></div>
         </div>
