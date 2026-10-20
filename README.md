@@ -15,7 +15,7 @@ No other custom cards (button-card, card-mod, Mushroom) are needed.
 
 ## Screenshots
 
-The screenshots show the day style.
+The screenshots show the day style; [Night](#night) shows the dark one.
 
 ### Desktop
 
@@ -49,6 +49,21 @@ Tapping the stored energy under **Battery level**:
     <td valign="top"><img src="docs/screenshots/iphone-solar.png" alt="iPhone PV strings" width="200"></td>
     <td valign="top"><img src="docs/screenshots/iphone-home.png" alt="iPhone home power usage" width="200"></td>
     <td valign="top"><img src="docs/screenshots/iphone-energy.png" alt="iPhone battery energy" width="200"></td>
+  </tr>
+</table>
+
+### Night
+
+Between sunset and sunrise (or with `style: night`) the card switches to the dark theme and the night photo:
+
+<table>
+  <tr>
+    <th>Desktop</th>
+    <th>iPhone (portrait)</th>
+  </tr>
+  <tr>
+    <td valign="top"><img src="docs/screenshots/desktop-main-night.png" alt="Desktop main view at night" width="720"></td>
+    <td valign="top"><img src="docs/screenshots/iphone-main-night.png" alt="iPhone main view at night" width="200"></td>
   </tr>
 </table>
 
