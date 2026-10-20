@@ -5,7 +5,7 @@
 // the photo's edge rows, plus [bleed] more beyond the scene that shows when the card is taller than
 // the scene; its TOP and BOTTOM must equal top + bleed and bottom + bleed.
 // [keep] is the horizontal range (house and readings) that is never cropped as the card narrows.
-// Below [narrowBelow] px, [keepNarrow] (the house and its readings, from the garage to the right wall)
+// Below [narrowBelow] px in portrait, [keepNarrow] (the house and its readings, from the garage to the right wall)
 // is protected instead; the SOLAR and HOME readings sit left of their leaders and the charger readings
 // move onto the garage, to stay inside it.
 const PHOTO = { width: 1676, height: 463, top: 100, bottom: 110, bleed: 100 };
@@ -390,7 +390,7 @@ class SigenergyFlowCard extends HTMLElement {
         const scene = this._id('scene'), plane = this._id('plane'), sidebar = this.root.querySelector('.sidebar');
         const width = scene.clientWidth;
         if (!width) return;
-        const narrow = width < SCENE.narrowBelow;
+        const narrow = width < SCENE.narrowBelow && matchMedia('(orientation: portrait)').matches;
         const [keepLeft, keepRight] = narrow ? SCENE.keepNarrow : SCENE.keep, keepWidth = keepRight - keepLeft;
         let scale = width / Math.min(SCENE.width, Math.max(keepWidth, width / SCENE.scale));
         let height = SCENE.height * scale;
