@@ -381,7 +381,22 @@ class SigenergyFlowCard extends HTMLElement {
         const scene = this._id('scene'), sidebar = this.root.querySelector('.sidebar');
         scene.fit = sidebar.fit = () => this._fitScene();
         this._chartObserver.observe(scene);
+        for (const el of [this.root.querySelector('.lower'), this._id('chargers')]) {
+            el.fit = scene.fit;
+            this._chartObserver.observe(el);
+        }
         this._chartObserver.observe(sidebar);
+    }
+    // Narrow: the DC charger's top lines up with SigenStor's and the AC charger sits above it; otherwise
+    // the charger readings are centred vertically.
+    _alignChargers(narrow) {
+        const chargers = this._id('chargers'), ac = this._id('acNode'), dc = this._id('dcNode');
+        if (!narrow || dc.hidden) {
+            Object.assign(chargers.style, { top: '', transform: '' });
+            return;
+        }
+        const gap = ac.hidden ? 0 : parseFloat(getComputedStyle(chargers).rowGap) || 0;
+        Object.assign(chargers.style, { top: `${this.root.querySelector('.lower').offsetTop - (ac.hidden ? 0 : ac.offsetHeight) - gap}px`, transform: 'none' });
     }
     // The scene is shown at its preferred scale with the sides cropped; once the visible width reaches
     // the protected range, the whole scene scales down instead, so the house always stays in view.
@@ -408,7 +423,9 @@ class SigenergyFlowCard extends HTMLElement {
         plane.style.setProperty('--s', scale);
         plane.classList.toggle('compact', scale < .6);
         plane.classList.toggle('narrow', narrow);
-        this._id('chargers').style.left = `${(READINGS.chargers[narrow ? 1 : 0] / SCENE.width * 100).toFixed(3)}%`;
+        const chargers = this._id('chargers');
+        chargers.style.left = `${(READINGS.chargers[narrow ? 1 : 0] / SCENE.width * 100).toFixed(3)}%`;
+        this._alignChargers(narrow);
     }
     // Day between today's sunrise and sunset (as shown under the chart), or as sun.sun reports without a location.
     _isDay() {
