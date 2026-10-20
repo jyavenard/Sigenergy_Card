@@ -217,6 +217,7 @@ class SigenergyFlowCard extends HTMLElement {
       .node em:empty{display:none}
       .node em.stack span{display:block}.node em.stack span+span::before{content:none}
       .node em span+span::before{content:' · '}
+      :host([day]) .compact .sidecol .node,:host([day]) .compact .lower .node{background:rgba(255,255,255,.74);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border-radius:8px;padding:4px 8px;text-shadow:none}
       .narrow .lead{transform:translateX(calc(-100% - 24px * var(--s)));text-align:right}
       .compact .sidecol .node{max-width:calc(260px * var(--s))}.narrow .sidecol .node{max-width:calc(230px * var(--s))}.compact .sidecol em{white-space:normal}
       .compact .lower .node+.node{max-width:calc(240px * var(--s))}.narrow .lower .node+.node{max-width:calc(150px * var(--s))}.compact .lower em{white-space:normal}.compact .lower .sep{display:none}.compact .lower #soc{display:block}
