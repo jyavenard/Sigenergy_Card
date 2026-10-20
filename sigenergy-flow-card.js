@@ -216,9 +216,10 @@ class SigenergyFlowCard extends HTMLElement {
       .node em{display:block;font-size:clamp(10px,calc(13px * var(--s)),14px);font-style:normal;color:var(--node-em);margin-top:.2em}
       .node em:empty{display:none}
       .node em.stack span{display:block}.node em.stack span+span::before{content:none}
+      .compact .node em.lifetime:not(.stack) span{display:inline}.compact .node em.lifetime:not(.stack) span+span::before{content:' · '}
       .node em span+span::before{content:' · '}
       .narrow .lead{transform:translateX(calc(-100% - 24px * var(--s)));text-align:right}
-      .compact .sidecol .node{max-width:calc(260px * var(--s))}.narrow .sidecol .node{max-width:calc(230px * var(--s))}.compact .sidecol em{white-space:normal}
+      .compact .sidecol .node{max-width:calc(430px * var(--s))}.narrow .sidecol .node{max-width:calc(230px * var(--s))}.compact .sidecol em{white-space:normal}
       .compact .lower .node+.node{max-width:calc(240px * var(--s))}.narrow .lower .node+.node{max-width:calc(150px * var(--s))}.compact .lower em{white-space:normal}
       .compact .node em span{display:block}.compact .node em span+span::before{content:none}
       .sidecol{position:absolute;top:50%;transform:translateY(-50%);z-index:2;display:flex;flex-direction:column;justify-content:space-between;gap:max(14px,calc(24px * var(--s)));min-height:calc(184px * var(--s))}
@@ -285,8 +286,8 @@ class SigenergyFlowCard extends HTMLElement {
           <div class="node"><strong id="grid">—</strong><small>GRID</small><em id="gridStatus"></em><em id="phaseMode"></em></div>
         </div>
         <div class="sidecol" id="chargers">
-          <div class="node" id="acNode"><strong id="ac">—</strong><small>AC CHARGER</small><em id="acSoc"></em><em id="acTotal"></em><em id="acLifetime" class="stack"></em></div>
-          <div class="node" id="dcNode"><button id="dcButton" title="Adjust DC charging power limit"><strong id="dc">—</strong><small>DC CHARGER<span id="dcGear"> ⚙</span></small><em id="dcSoc"></em><em id="dcLifetime" class="stack"></em></button></div>
+          <div class="node" id="acNode"><strong id="ac">—</strong><small>AC CHARGER</small><em id="acSoc"></em><em id="acTotal"></em><em id="acLifetime" class="lifetime stack"></em></div>
+          <div class="node" id="dcNode"><button id="dcButton" title="Adjust DC charging power limit"><strong id="dc">—</strong><small>DC CHARGER<span id="dcGear"> ⚙</span></small><em id="dcSoc"></em><em id="dcLifetime" class="lifetime stack"></em></button></div>
         </div>
       </div></section><aside class="sidebar">
         <section class="panel"><h3>Today's energy</h3><div class="stats">
@@ -397,7 +398,7 @@ class SigenergyFlowCard extends HTMLElement {
             range.selectNodeContents(el);
             const width = range.getBoundingClientRect().width;
             el.style.whiteSpace = '';
-            el.classList.toggle('stack', width > (narrow ? 230 : 260) * scale);
+            el.classList.toggle('stack', width > (narrow ? 230 : 420) * scale);
         }
     }
     // Narrow: the DC charger's top lines up with SigenStor's and the AC charger sits above it; otherwise
