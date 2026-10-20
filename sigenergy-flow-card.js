@@ -387,6 +387,19 @@ class SigenergyFlowCard extends HTMLElement {
         }
         this._chartObserver.observe(sidebar);
     }
+    // The lifetime parts (charged, discharged) share a line when it fits beside the garage, else stack.
+    _stackLifetime(narrow, scale) {
+        for (const id of ['acLifetime', 'dcLifetime']) {
+            const el = this._id(id);
+            el.classList.remove('stack');
+            el.style.whiteSpace = 'nowrap';
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            const width = range.getBoundingClientRect().width;
+            el.style.whiteSpace = '';
+            el.classList.toggle('stack', width > (narrow ? 230 : 260) * scale);
+        }
+    }
     // Narrow: the DC charger's top lines up with SigenStor's and the AC charger sits above it; otherwise
     // the charger readings are centred vertically.
     _alignChargers(narrow) {
@@ -425,6 +438,7 @@ class SigenergyFlowCard extends HTMLElement {
         plane.classList.toggle('narrow', narrow);
         const chargers = this._id('chargers');
         chargers.style.left = `${(READINGS.chargers[narrow ? 1 : 0] / SCENE.width * 100).toFixed(3)}%`;
+        this._stackLifetime(narrow, scale);
         this._alignChargers(narrow);
         // When the scene is taller than the photo, the SigenStor and GRID row starts where the photo ends
         // (the blurred band), as long as it keeps clear of the scene's bottom edge.

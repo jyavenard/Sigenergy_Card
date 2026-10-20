@@ -296,7 +296,7 @@ Each charger's reading and chart series only appear if its power entity exists:
 Unless `show_lifetime: false`, the card also shows under each charger's power:
 
 - AC charger: energy consumed (`sensor.sigen_ac_charger_total_energy_consumed`).
-- Both chargers: lifetime energy, e.g. `Lifetime ↓ 3,456.7 kWh` (charged) and `↑ 12.3 kWh` (discharged). The discharged part only appears for bidirectional (V2G / V2H) charging, i.e. while it is above 0.
+- Both chargers: lifetime energy, e.g. `Lifetime ↓ 3,456.7 kWh · ↑ 12.3 kWh` (charged, discharged), on two lines when the card is too small to fit them on one. The discharged part only appears for bidirectional (V2G / V2H) charging, i.e. while it is above 0.
 
 Each line is hidden when its entities do not exist.
 
