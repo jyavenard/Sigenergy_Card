@@ -5,10 +5,10 @@
 // the photo's edge rows, plus [bleed] more beyond the scene that shows when the card is taller than
 // the scene; its TOP and BOTTOM must equal top + bleed and bottom + bleed.
 // [keep] is the horizontal range (house and readings) that is never cropped as the card narrows.
-// Below [stackBelow] px the charger readings move under the photo and [keepStacked] (the house and the
-// other readings) is the protected range instead, so the house can be shown larger.
+// Below [narrowBelow] px, [keepNarrow] (the house and its readings, without the trees on its right)
+// is protected instead, and the SOLAR and HOME readings sit left of their leaders to stay inside it.
 const PHOTO = { width: 1676, height: 463, top: 100, bottom: 110, bleed: 100 };
-const SCENE = { width: PHOTO.width, height: PHOTO.top + PHOTO.height + PHOTO.bottom, keep: [160, 1320], keepStacked: [410, 1280], stackBelow: 560, scale: 1 };
+const SCENE = { width: PHOTO.width, height: PHOTO.top + PHOTO.height + PHOTO.bottom, keep: [160, 1320], keepNarrow: [150, 1215], narrowBelow: 560, scale: 1 };
 
 // Default entities for each `entities:` key in the card config, in priority order.
 // Plant sensors are the primary source (they combine every inverter and battery);
@@ -215,12 +215,12 @@ class SigenergyFlowCard extends HTMLElement {
       .node em:empty{display:none}
       .node em.stack span{display:block}.node em.stack span+span::before{content:none}
       .node em span+span::before{content:' · '}
-      .compact .lower .node+.node{max-width:calc(240px * var(--s))}.compact .lower em{white-space:normal}.compact .lower .sep{display:none}.compact .lower #soc{display:block}
+      .narrow .lead{transform:translateX(calc(-100% - 24px * var(--s)));text-align:right}
+      .compact .sidecol .node{max-width:calc(260px * var(--s))}.compact .sidecol em{white-space:normal}
+      .compact .lower .node+.node{max-width:calc(240px * var(--s))}.narrow .lower .node+.node{max-width:calc(150px * var(--s))}.compact .lower em{white-space:normal}.compact .lower .sep{display:none}.compact .lower #soc{display:block}
       .compact .node em span{display:block}.compact .node em span+span::before{content:none}
       .sidecol{position:absolute;z-index:2;display:flex;flex-direction:column;justify-content:space-between;gap:max(14px,calc(24px * var(--s)));min-height:calc(184px * var(--s))}
       .lower{position:absolute;z-index:2;display:grid;align-items:start}.lower .node{position:static}
-      .strip{position:absolute;left:0;right:0;bottom:0;z-index:2;display:none;padding:22px 14px 12px;background:linear-gradient(transparent,var(--scene) 35%);--s:.6}.strip.on{display:block}
-      .strip .sidecol{position:static;flex-direction:row;min-height:0;gap:16px}.strip .sidecol .node{flex:1;min-width:0}
       .sidecol .node{position:static;border-left:1px solid var(--leader);padding-left:max(6px,calc(10px * var(--s)))}
       .node button{all:unset;cursor:pointer;display:block}.node button:focus-visible{outline:2px solid #71d3d1}
       .sidebar{display:flex;flex-direction:column;gap:12px}.panel{background:var(--panel);border:1px solid var(--panel-line);border-radius:12px;padding:13px}
@@ -274,8 +274,8 @@ class SigenergyFlowCard extends HTMLElement {
           ${LEADERS.map(d => `<path class="leader" d="${d}"/>`).join('')}
           ${flows}
         </svg>
-        <div class="node" style="${placeAt(READINGS.pv)}"><button id="pvButton" title="Show PV string details"><strong id="pv">—</strong><small>SOLAR ›</small></button></div>
-        <div class="node" style="${placeAt(READINGS.home)}">${this.config.home_entities.length
+        <div class="node lead" style="${placeAt(READINGS.pv)}"><button id="pvButton" title="Show PV string details"><strong id="pv">—</strong><small>SOLAR ›</small></button></div>
+        <div class="node lead" style="${placeAt(READINGS.home)}">${this.config.home_entities.length
             ? `<button id="homeButton" title="Show home power usage"><strong id="home">—</strong><small>HOME ›</small></button>`
             : `<strong id="home">—</strong><small>HOME</small>`}</div>
         <div class="lower" style="${lowerStyle}">
@@ -286,7 +286,7 @@ class SigenergyFlowCard extends HTMLElement {
           <div class="node" id="acNode"><strong id="ac">—</strong><small>AC CHARGER</small><em id="acSoc"></em><em id="acTotal"></em><em id="acLifetime" class="stack"></em></div>
           <div class="node" id="dcNode"><button id="dcButton" title="Adjust DC charging power limit"><strong id="dc">—</strong><small>DC CHARGER<span id="dcGear"> ⚙</span></small><em id="dcSoc"></em><em id="dcLifetime" class="stack"></em></button></div>
         </div>
-      </div><div class="strip compact" id="strip"></div></section><aside class="sidebar">
+      </div></section><aside class="sidebar">
         <section class="panel"><h3>Today's energy</h3><div class="stats">
           ${DAILY_TILES.map(([id, , label]) => `<button class="stat"><small>${label}</small><b id="${id}">—</b></button>`).join('')}<button class="stat" id="socStat"><small>Battery SOC</small><b id="daySoc">—</b></button>
         </div></section><section class="panel"><h3>Battery level</h3><button class="link" id="socLevel"><strong id="socLarge">—</strong><div class="socbar"><div class="socfill" id="socFill"></div></div></button><button class="link muted" id="capacity" title="Show stored energy today"><span id="capacityText"></span></button></section>
@@ -377,10 +377,8 @@ class SigenergyFlowCard extends HTMLElement {
         this._chartObserver.observe(this._id('pvChart'));
         this._chartObserver.observe(this._id('energyChart'));
         const scene = this._id('scene'), sidebar = this.root.querySelector('.sidebar');
-        const strip = this._id('strip');
-        scene.fit = sidebar.fit = strip.fit = () => this._fitScene();
+        scene.fit = sidebar.fit = () => this._fitScene();
         this._chartObserver.observe(scene);
-        this._chartObserver.observe(strip);
         this._chartObserver.observe(sidebar);
     }
     // The scene is shown at its preferred scale with the sides cropped; once the visible width reaches
@@ -390,13 +388,10 @@ class SigenergyFlowCard extends HTMLElement {
         const scene = this._id('scene'), plane = this._id('plane'), sidebar = this.root.querySelector('.sidebar');
         const width = scene.clientWidth;
         if (!width) return;
-        const stacked = width < SCENE.stackBelow, strip = this._id('strip'), chargers = this.root.querySelector('.sidecol');
-        if (stacked !== (chargers.parentNode === strip)) (stacked ? strip : plane).append(chargers);
-        strip.classList.toggle('on', stacked && !(this._id('acNode').hidden && this._id('dcNode').hidden));
-        const stripHeight = strip.classList.contains('on') ? strip.offsetHeight : 0;
-        const [keepLeft, keepRight] = stacked ? SCENE.keepStacked : SCENE.keep, keepWidth = keepRight - keepLeft;
+        const narrow = width < SCENE.narrowBelow;
+        const [keepLeft, keepRight] = narrow ? SCENE.keepNarrow : SCENE.keep, keepWidth = keepRight - keepLeft;
         let scale = width / Math.min(SCENE.width, Math.max(keepWidth, width / SCENE.scale));
-        let height = SCENE.height * scale + stripHeight;
+        let height = SCENE.height * scale;
         if (sidebar.offsetTop === scene.offsetTop && sidebar.lastElementChild) {
             const sidebarHeight = sidebar.lastElementChild.offsetTop + sidebar.lastElementChild.offsetHeight - sidebar.firstElementChild.offsetTop;
             if (sidebarHeight > height) {
@@ -407,9 +402,10 @@ class SigenergyFlowCard extends HTMLElement {
         const visible = width / scale;
         const centre = Math.min(SCENE.width - visible / 2, Math.max(visible / 2, (keepLeft + keepRight) / 2));
         scene.style.height = `${height}px`;
-        Object.assign(plane.style, { width: `${SCENE.width * scale}px`, height: `${SCENE.height * scale}px`, left: `${-(centre - visible / 2) * scale}px`, top: `${stacked ? 0 : (height - SCENE.height * scale) / 2}px` });
+        Object.assign(plane.style, { width: `${SCENE.width * scale}px`, height: `${SCENE.height * scale}px`, left: `${-(centre - visible / 2) * scale}px`, top: `${(height - SCENE.height * scale) / 2}px` });
         plane.style.setProperty('--s', scale);
         plane.classList.toggle('compact', scale < .6);
+        plane.classList.toggle('narrow', narrow);
     }
     // Day between today's sunrise and sunset (as shown under the chart), or as sun.sun reports without a location.
     _isDay() {
