@@ -7,8 +7,9 @@
 // [keep] is the horizontal range (house and readings) that is never cropped as the card narrows.
 // Below [narrowBelow] px, [keepNarrow] (the house and its readings, without the trees on its right)
 // is protected instead, and the SOLAR and HOME readings sit left of their leaders to stay inside it.
+// Without charger readings to make room for, [keepNarrowBare] crops the left side as far as the garage.
 const PHOTO = { width: 1676, height: 463, top: 100, bottom: 110, bleed: 100 };
-const SCENE = { width: PHOTO.width, height: PHOTO.top + PHOTO.height + PHOTO.bottom, keep: [160, 1320], keepNarrow: [150, 1215], narrowBelow: 560, scale: 1 };
+const SCENE = { width: PHOTO.width, height: PHOTO.top + PHOTO.height + PHOTO.bottom, keep: [160, 1320], keepNarrow: [150, 1215], keepNarrowBare: [390, 1215], narrowBelow: 560, scale: 1 };
 
 // Default entities for each `entities:` key in the card config, in priority order.
 // Plant sensors are the primary source (they combine every inverter and battery);
@@ -390,7 +391,7 @@ class SigenergyFlowCard extends HTMLElement {
         const width = scene.clientWidth;
         if (!width) return;
         const narrow = width < SCENE.narrowBelow;
-        const [keepLeft, keepRight] = narrow ? SCENE.keepNarrow : SCENE.keep, keepWidth = keepRight - keepLeft;
+        const [keepLeft, keepRight] = narrow ? (this._noChargers ? SCENE.keepNarrowBare : SCENE.keepNarrow) : SCENE.keep, keepWidth = keepRight - keepLeft;
         let scale = width / Math.min(SCENE.width, Math.max(keepWidth, width / SCENE.scale));
         let height = SCENE.height * scale;
         if (sidebar.offsetTop === scene.offsetTop && sidebar.lastElementChild) {
@@ -737,6 +738,10 @@ class SigenergyFlowCard extends HTMLElement {
         this._id('dcGear').hidden = !this._has(e('dc_charger_limit'));
         this._id('acNode').hidden = !hasAc;
         this._id('dcNode').hidden = !hasDc;
+        if (this._noChargers !== (!hasAc && !hasDc)) {
+            this._noChargers = !hasAc && !hasDc;
+            this._fitScene();
+        }
         this._id('legendAC').hidden = !hasAc;
         this._id('legendDC').hidden = !hasDc;
         const grid = imp !== null && imp > 0 ? imp : exp !== null && exp > 0 ? -exp : imp ?? (exp === null ? null : -exp);
