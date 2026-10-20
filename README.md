@@ -102,11 +102,13 @@ All options are optional.
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `pv_strings` | `[PV1, PV2, PV3, PV4]` | Display names for the PV strings, in order. The number of names sets how many strings are shown. |
+| `entities` | Sigenergy entities | Replaces the entities the card reads, for other inverter brands or integrations. See [Custom entities](#custom-entities). |
+| `battery_power_invert` | `false` | Set `true` if your battery power sensor is positive while **discharging**. The card expects positive while charging. |
+| `pv_strings` | `[PV1, PV2, PV3, PV4]` | The PV strings, in order. Each is a display name, or an object with its own entities (see [PV strings](#pv-strings)). The number of entries sets how many strings are shown. |
 | `home_entities` | `[]` | Power entities listed when tapping **HOME**. Without it, HOME is a plain label. |
-| `ac_charger_soc` | none | Battery level entity of the vehicle on the AC charger. |
-| `ac_charger_range` | none | Range entity of that vehicle. Only shown together with `ac_charger_soc`. |
-| `style` | `auto` | Artwork to show: `day`, `night` or `auto` (day between sunrise and sunset). |
+| `ac_charger_soc` | none | Battery level entity of the vehicle on the AC charger. Same as `entities.ac_charger_vehicle_soc`. |
+| `ac_charger_range` | none | Range entity of that vehicle. Only shown together with `ac_charger_soc`. Same as `entities.ac_charger_vehicle_range`. |
+| `style` | `auto` | Artwork and theme: `day`, `night` or `auto` (day between sunrise and sunset). |
 
 ### Example
 
@@ -142,6 +144,84 @@ style: day
 
 Each flow's highlight moves from its source to its destination at `60 + 35 × √kW` scene units per second, using that flow's own power, so a 5 kW flow runs about 1.6 times faster than a 0.6 kW one. A flow below 0.025 kW is idle. The short branch of the home line into the glass doors continues the home flow's animation from the point where it forks, at the same speed. With *reduce motion* enabled in the operating system, the lines are drawn without moving highlights.
 
+### Custom entities
+
+Every entity the card reads can be replaced under `entities:`. For each key:
+
+- **Not set:** the Sigenergy default is used (for the plant/inverter pairs, the plant sensor first, then the inverter fallback).
+- **Set to an entity ID:** that entity is used, with no fallback.
+- **Set to `false`:** that item is hidden (its tile, line or charger disappears).
+
+Power values can be in W, kW or MW and energy values in Wh, kWh or MWh; the card converts them to kW and kWh using each entity's unit. An unknown key or a value that is not an entity ID shows a configuration error.
+
+| Key | Default | Used for |
+| --- | --- | --- |
+| `pv_power` | `sensor.sigen_plant_pv_power` | SOLAR value, solar wire, chart |
+| `home_power` | `sensor.sigen_plant_consumed_power` | HOME value, home wire, chart, home usage dialog |
+| `battery_power` | `sensor.sigen_plant_battery_power`, fallback `sensor.sigen_inverter_battery_power` | Battery value and status, wire, chart. Positive = charging (see `battery_power_invert`). |
+| `battery_soc` | `sensor.sigen_plant_battery_state_of_charge`, fallback `sensor.sigen_inverter_battery_state_of_charge` | SOC label, tile, bar and stored-energy history |
+| `battery_capacity` | `sensor.sigen_plant_rated_energy_capacity` | Stored energy (SOC × capacity) |
+| `grid_import_power` | `sensor.sigen_plant_grid_import_power` | GRID value and status, wire, chart (positive while importing) |
+| `grid_export_power` | `sensor.sigen_plant_grid_export_power` | GRID value and status, wire, chart (positive while exporting) |
+| `phase_mode` | `switch.sigen_plant_independent_phase_power_control` | Phase power mode line under GRID |
+| `ac_charger_power` | `sensor.sigen_ac_charger_charging_power` | AC charger value, chart; the AC charger only appears if this exists |
+| `ac_charger_state` | `sensor.sigen_ac_charger_system_state` | AC charger state text |
+| `ac_charger_total_energy` | `sensor.sigen_ac_charger_total_energy_consumed` | AC charger energy consumed |
+| `ac_charger_lifetime_charged_energy` | `sensor.sigen_plant_total_charged_energy_of_the_evac` | AC charger lifetime line (↓ charged) |
+| `ac_charger_lifetime_discharged_energy` | `sensor.sigen_plant_total_discharged_energy_of_the_evac` | AC charger lifetime line (↑ discharged, hidden while 0) |
+| `ac_charger_vehicle_soc` | none | Vehicle battery level on the AC charger |
+| `ac_charger_vehicle_range` | none | Vehicle range on the AC charger |
+| `dc_charger_power` | `sensor.sigen_inverter_dc_charger_output_power` | DC charger value, chart; the DC charger only appears if this exists |
+| `dc_charger_vehicle_soc` | `sensor.sigen_inverter_dc_charger_vehicle_soc` | Vehicle battery level on the DC charger |
+| `dc_charger_limit` | `number.sigen_inverter_dc_charger_max_charging_power_limit` | Opened when tapping the DC charger (⚙) |
+| `dc_charger_lifetime_charged_energy` | `sensor.sigen_plant_total_charged_energy_of_the_evdc` | DC charger lifetime line (↓ charged) |
+| `dc_charger_lifetime_discharged_energy` | `sensor.sigen_plant_total_discharged_energy_of_the_evdc` | DC charger lifetime line (↑ discharged, hidden while 0) |
+| `pv_strings_power` | `sensor.sigen_plant_sigen_pv_power` | PV Strings **Total** power (Sigenergy PV inputs only) |
+| `pv_strings_lifetime_energy` | `sensor.sigen_plant_total_generation_of_self_pv`, fallback `sensor.sigen_plant_total_pv_generation`, then `sensor.sigen_inverter_total_pv_energy` | PV Strings **Total** lifetime energy. Systems with only Sigenergy PV usually have just `sensor.sigen_plant_total_pv_generation` enabled. That sensor covers all PV in the plant, so when it is used and `third_party_pv_lifetime_energy` is available, the third-party energy is subtracted. |
+| `third_party_pv_power` | `sensor.sigen_plant_third_party_pv_power` | PV Strings **Third-party PV** row |
+| `third_party_pv_lifetime_energy` | `sensor.sigen_plant_total_generation_of_third_party_inverter` | PV Strings **Third-party PV** row |
+| `daily_pv_energy` | `sensor.sigen_plant_daily_pv_energy`, fallback `sensor.sigen_inverter_daily_pv_energy` | Solar produced tile |
+| `daily_grid_import_energy` | `sensor.sigen_plant_daily_grid_import_energy` | Grid imported tile |
+| `daily_grid_export_energy` | `sensor.sigen_plant_daily_grid_export_energy` | Grid exported tile |
+| `daily_battery_charge_energy` | `sensor.sigen_plant_daily_battery_charge_energy`, fallback `sensor.sigen_inverter_daily_charge_energy` | Battery charged tile |
+| `daily_battery_discharge_energy` | `sensor.sigen_plant_daily_battery_discharge_energy`, fallback `sensor.sigen_inverter_daily_discharge_energy` | Battery discharged tile |
+
+Example for another brand:
+
+```yaml
+type: custom:sigenergy-flow-card
+battery_power_invert: true
+entities:
+  pv_power: sensor.inverter_pv_power
+  home_power: sensor.inverter_load_power
+  battery_power: sensor.inverter_battery_power
+  battery_soc: sensor.inverter_battery_soc
+  battery_capacity: sensor.battery_capacity
+  grid_import_power: sensor.grid_import_power
+  grid_export_power: sensor.grid_export_power
+  daily_pv_energy: sensor.pv_energy_today
+  daily_grid_import_energy: sensor.grid_import_today
+  daily_grid_export_energy: sensor.grid_export_today
+  daily_battery_charge_energy: sensor.battery_charge_today
+  daily_battery_discharge_energy: sensor.battery_discharge_today
+  phase_mode: false
+  ac_charger_power: false
+  dc_charger_power: false
+pv_strings:
+  - name: East
+    power: sensor.pv1_power
+    voltage: sensor.pv1_voltage
+    current: sensor.pv1_current
+    daily_energy: false
+    accumulated_energy: false
+  - name: West
+    power: sensor.pv2_power
+    voltage: sensor.pv2_voltage
+    current: sensor.pv2_current
+    daily_energy: false
+    accumulated_energy: false
+```
+
 ### PV strings
 
 Tapping **SOLAR** reads these entities for each string *n* (1 to the number of `pv_strings`):
@@ -152,6 +232,23 @@ sensor.sigen_inverter_pv<n>_current
 sensor.sigen_inverter_pv<n>_power
 sensor.sigen_inverter_pv<n>_daily_energy
 sensor.sigen_inverter_pv<n>_accumulated_energy
+```
+
+A string written as an object sets its own entities instead, and uses only the keys it lists: a column left out (or set to `false`) shows `—`. Names and objects can be mixed.
+
+A string none of whose entities exist in Home Assistant is treated as not fitted: its row, legend entry and chart line are hidden. The default four names therefore suit inverters with 2, 3 or 4 strings without changes.
+
+The **Total** row uses the system's own PV sensors when they exist (`pv_strings_power`, `daily_pv_energy` and `pv_strings_lifetime_energy`), otherwise the sum of the strings shown. When `third_party_pv_power` or `third_party_pv_lifetime_energy` exists, a **Third-party PV** row is shown below the Total.
+
+```yaml
+pv_strings:
+  - name: East
+    power: sensor.east_power
+    voltage: sensor.east_voltage
+    current: sensor.east_current
+    daily_energy: sensor.east_energy_today
+    accumulated_energy: sensor.east_energy_total
+  - PV2   # name only: uses sensor.sigen_inverter_pv2_*
 ```
 
 ### Home power usage
@@ -166,12 +263,40 @@ Other keys are ignored, so a list written for [power-flow-card-plus](https://git
 
 The list shows only entities currently drawing power (anything that would display as more than 0.00 kW), sorted from highest to lowest. **Measured** is the sum of the listed entities, compared with the home consumption reported by Sigenergy; the remainder is shown as **Other (unmeasured)**. Avoid listing a sensor together with another sensor that already includes it (for example a circuit and the phase meter that feeds it), as it would be counted twice. Tapping an entry opens its Home Assistant details.
 
+### Plant and inverter sensors
+
+Plant sensors are the primary data source: they combine every inverter and battery in the system, while an inverter sensor reports only its own unit. Inverter sensors are the secondary (fallback) source, used only when the matching plant sensor does not exist or is unavailable.
+
+| Value | Primary source (plant) | Secondary / fallback source (inverter) |
+|---|---|---|
+| Battery power | `sensor.sigen_plant_battery_power` | `sensor.sigen_inverter_battery_power` |
+| Battery state of charge | `sensor.sigen_plant_battery_state_of_charge` | `sensor.sigen_inverter_battery_state_of_charge` |
+| Today's solar produced | `sensor.sigen_plant_daily_pv_energy` | `sensor.sigen_inverter_daily_pv_energy` |
+| Today's battery charged | `sensor.sigen_plant_daily_battery_charge_energy` | `sensor.sigen_inverter_daily_charge_energy` |
+| Today's battery discharged | `sensor.sigen_plant_daily_battery_discharge_energy` | `sensor.sigen_inverter_daily_discharge_energy` |
+
+The DC charger is attached to an inverter, so its entities are inverter sensors only: `sensor.sigen_inverter_dc_charger_output_power`, `sensor.sigen_inverter_dc_charger_vehicle_soc` and `number.sigen_inverter_dc_charger_max_charging_power_limit`.
+
+### Phase power mode
+
+Under **GRID**, the card shows the inverter's phase balancing mode from `switch.sigen_plant_independent_phase_power_control`. The line is hidden if the switch does not exist.
+
+- **Power Per Phase Mode** (switch on): each phase is tracked and balanced individually.
+- **Total Power Mode** (switch off): the sum of all three phases is balanced, so import on one phase can offset export on another.
+
 ### AC and DC chargers
 
-Each charger's reading, chart series and (for the AC charger) artwork only appear if its power entity exists:
+Each charger's reading and chart series only appear if its power entity exists:
 
 - AC charger: `sensor.sigen_ac_charger_charging_power`
 - DC charger: `sensor.sigen_inverter_dc_charger_output_power`
+
+Under each charger's power the card can also show:
+
+- AC charger: energy consumed (`sensor.sigen_ac_charger_total_energy_consumed`).
+- Both chargers: a lifetime line, e.g. `Lifetime ↓ 3,456.7 kWh · ↑ 12.3 kWh` (charged / discharged). The discharged part only appears for bidirectional (V2G / V2H) charging, i.e. while it is above 0.
+
+Each line is hidden when its entities do not exist.
 
 The DC charger's vehicle state of charge is hidden while the charger is idle and reports 0%.
 
@@ -190,6 +315,8 @@ Small Python scripts that query the system directly over Modbus TCP (port 502). 
 - `sigen_soc.py`: prints the battery state of charge.
 - `sigen_powermode.py`: reports whether Independent Phase Control is active.
 - `sigen_evac.py`: scans Modbus device IDs to find the AC charger (EVAC) and prints its total energy consumed.
+
+The card itself reads everything from Home Assistant entities (battery level, phase power mode and AC charger energy included), so it does not need these scripts; they are for use outside Home Assistant.
 
 ## Acknowledgements
 
