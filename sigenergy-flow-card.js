@@ -115,6 +115,13 @@ const STYLES = {
 const styleVars = style => Object.entries(STYLES[style]).map(([name, value]) => `--${name}:${value}`).join(';');
 const COMET_LAYERS = [1, .78, .56, .36, .18];
 
+// Power given in kW, shown as W below 1 kW and MW from 1000 kW.
+const formatPower = kw => {
+    const watts = Math.round(Math.abs(kw) * 1000);
+    if (watts < 1000) return `${watts} W`;
+    const k = Math.abs(kw);
+    return k < 999.995 ? `${k.toFixed(2)} kW` : `${(k / 1000).toFixed(2)} MW`;
+};
 const placeAt = ([x, y, edge]) => `left:${(x / SCENE.width * 100).toFixed(3)}%;${edge}:${((edge === 'top' ? y : SCENE.height - y) / SCENE.height * 100).toFixed(3)}%`;
 
 class SigenergyFlowCard extends HTMLElement {
@@ -473,7 +480,7 @@ class SigenergyFlowCard extends HTMLElement {
         const list = this._id('homeLoads');
         if (rows.length !== list.children.length || rows.some((row, i) => row !== list.children[i])) list.replaceChildren(...rows);
         this._text('homeTotal', this._power(home));
-        this._text('homeMeasured', home === null || home <= 0 ? '' : `Measured ${measured.toFixed(2)} kW · ${Math.round(Math.min(measured / home, 1) * 100)}% of home consumption`);
+        this._text('homeMeasured', home === null || home <= 0 ? '' : `Measured ${formatPower(measured)} · ${Math.round(Math.min(measured / home, 1) * 100)}% of home consumption`);
     }
     // Rows are kept per entity and updated in place, so a click is not lost to a refresh.
     _loadRow(load, entity, scale, home) {
@@ -492,7 +499,7 @@ class SigenergyFlowCard extends HTMLElement {
         if (load.icon && !icon) name.prepend(icon = document.createElement('ha-icon'));
         if (icon && icon.getAttribute('icon') !== load.icon) load.icon ? icon.setAttribute('icon', load.icon) : icon.remove();
         this._setText(name.lastElementChild, load.name);
-        this._setText(value, `${load.kw.toFixed(2)} kW`);
+        this._setText(value, formatPower(load.kw));
         this._setText(pct, home === null || home <= 0 ? '' : `${Math.round(Math.max(0, load.kw) / home * 100)}%`);
         bar.firstChild.style.width = `${(Math.max(0, load.kw) / scale * 100).toFixed(1)}%`;
         return row;
@@ -594,7 +601,7 @@ class SigenergyFlowCard extends HTMLElement {
         }
     }
     _power(v) {
-        return v === null ? '—' : `${Math.abs(v).toFixed(2)} kW`
+        return v === null ? '—' : formatPower(v)
     }
     _kwh(v) {
         return `${v.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh`;
@@ -963,7 +970,7 @@ class SigenergyFlowCard extends HTMLElement {
         const time = new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const html = [...rows.values()].map(r => {
             const note = r.note?.(r.v);
-            return `<div><i class="dot" style="background:${r.color}"></i>${r.name}${note ? ` <em>${note}</em>` : ''}<span>${Math.abs(r.v).toFixed(2)} ${r.unit ?? 'kW'}</span></div>`;
+            return `<div><i class="dot" style="background:${r.color}"></i>${r.name}${note ? ` <em>${note}</em>` : ''}<span>${r.unit ? `${Math.abs(r.v).toFixed(2)} ${r.unit}` : formatPower(r.v)}</span></div>`;
         }).join('');
         tip.innerHTML = `<b>${time}</b>${html || '<em>No data</em>'}`;
         tip.hidden = false;

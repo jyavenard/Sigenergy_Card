@@ -152,7 +152,7 @@ Every entity the card reads can be replaced under `entities:`. For each key:
 - **Set to an entity ID:** that entity is used, with no fallback.
 - **Set to `false`:** that item is hidden (its tile, line or charger disappears).
 
-Power values can be in W, kW or MW and energy values in Wh, kWh or MWh; the card converts them to kW and kWh using each entity's unit. An unknown key or a value that is not an entity ID shows a configuration error.
+Power values can be in W, kW or MW and energy values in Wh, kWh or MWh; the card converts them to kW and kWh using each entity's unit. Power readings are shown in W below 1 kW, in kW up to 1000 kW and in MW above. An unknown key or a value that is not an entity ID shows a configuration error.
 
 | Key | Default | Used for |
 | --- | --- | --- |
