@@ -13,6 +13,7 @@ Contributed by Justin (pull request 1), merged onto the photo scene and day/nigh
 - PV strings can be objects with their own entities. A string with none of its entities is hidden, the Total row uses the system PV sensors when present, and a Third-party PV row appears when those sensors exist.
 - Optional lines: `show_lifetime` (on by default) adds the AC charger's energy consumed and both chargers' lifetime energy charged and discharged; `show_phase_mode` (off by default) shows the phase power mode under GRID. The DC charger's gear icon is hidden without a limit entity.
 - Battery level is shown to one decimal.
+- On narrow cards (under 560 px, such as a phone in portrait) the photo is cropped to the house so it can be shown larger, and the AC and DC charger readings move to a strip under the photo.
 - The SigenStor and GRID readings are aligned at the top, whatever their number of lines, and sit slightly higher; the grid line and the two leaders follow.
 - Power readings pick their unit: W below 1 kW (for example 40 W), kW up to 1000 kW and MW above.
 - The Modbus utility scripts stay in the repository.
