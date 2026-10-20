@@ -2,6 +2,11 @@
 
 Each release is tagged `vN` on GitHub; HACS offers the newest release as the update.
 
+## v46
+
+- Day style: the fades at the photo's edges are dark instead of white, so the white readings stay legible over the pale sky, foliage and pavement (the AC charger lines in particular), and the text shadow has a tighter dark edge. The small labels and status lines are slightly heavier.
+- On a phone in portrait the AC and DC charger readings are no longer lined up with SigenStor; they are centred vertically like everywhere else.
+
 ## v45
 
 Contributed by Justin (pull request 1), merged onto the photo scene and day/night styles.

@@ -1,4 +1,4 @@
-/* Sigenergy Flow Card v45 — standalone Home Assistant Lovelace custom card */
+/* Sigenergy Flow Card v46 — standalone Home Assistant Lovelace custom card */
 
 // Scene coordinates: the house photo (1676x557 units) sits between a band above it for the SOLAR and HOME
 // readings and a band below it for SigenStor and GRID. tools/embed-artwork.py builds both bands from
@@ -111,8 +111,8 @@ const STYLES = {
         'tile': '#edf3f8', 'tile-hover': '#e2ecf4', 'tile-sub': '#6c7a89', 'heading': '#2b3744', 'bar': '#d9e5ed', 'bar-fill': 'linear-gradient(90deg,#1fc2bc,#6fe0d6)',
         'pill': '#e6eef4', 'pill-fg': '#5d6c7b', 'legend': '#5d6c7b', 'muted': '#7a8794', 'icon': '#5d6c7b', 'load-bar': '#d5e1ea', 'load-fill': '#3fb6c6',
         'other-line': '#c3d2dd', 'other-fill': '#9fb0bd', 'tip': 'rgba(255,255,255,.96)', 'tip-line': '#d3e0ea', 'tip-shadow': '#3b536a30', 'dialog': '#f7fafc', 'dialog-line': '#d3e0ea',
-        'grid': '#d0dce5', 'axis': '#7a8794', 'cursor': '#7a8794', 'dot-edge': '#fff', 'scene': '#e4f2f7', 'fade': '#fff', 'fade-opacity': .7, 'fade-left': 1,
-        'node-fg': '#fff', 'node-sub': '#e6edf0', 'node-em': '#b4f2e2', 'node-shadow': '0 1px 2px #000,0 2px 10px #000c', 'leader': 'rgba(255,255,255,.7)',
+        'grid': '#d0dce5', 'axis': '#7a8794', 'cursor': '#7a8794', 'dot-edge': '#fff', 'scene': '#e4f2f7', 'fade': '#0e1b26', 'fade-opacity': .7, 'fade-left': .6,
+        'node-fg': '#fff', 'node-sub': '#f2f6f8', 'node-em': '#c4f6ea', 'node-shadow': '0 0 2px #000c,0 1px 3px #000,0 2px 10px #000d', 'leader': 'rgba(255,255,255,.7)',
         'wire-on': 'rgba(18,184,166,.9)', 'comet': '#5eead4',
         'c-solar': '#e2a900', 'c-battery': '#14b3ac', 'c-grid': '#6f6df2', 'c-ac': '#ea8a3c', 'c-dc': '#a35ff0', 'c-home': '#6b7f8c',
         'pv0': '#3fb83f', 'pv1': '#14b5c0', 'pv2': '#5465e8', 'pv3': '#9b52e8', 'pv4': '#ea8a3c', 'pv5': '#e2a900',
@@ -214,6 +214,7 @@ class SigenergyFlowCard extends HTMLElement {
       .flow.active.moving .glow,.flow.active.moving .comet{display:inline}
       .node{position:absolute;z-index:2;color:var(--node-fg);white-space:nowrap;line-height:1.2;text-shadow:var(--node-shadow)}
       .node strong{display:block;font-size:clamp(14px,calc(27px * var(--s)),30px);font-weight:580}
+      .node small,.node em{font-weight:500}
       .node small{display:block;font-size:clamp(11px,calc(19px * var(--s)),20px);color:var(--node-sub);margin-top:.15em;letter-spacing:.3px}
       .node em{display:block;font-size:clamp(10px,calc(13px * var(--s)),14px);font-style:normal;color:var(--node-em);margin-top:.2em}
       .node em:empty{display:none}
@@ -407,24 +408,17 @@ class SigenergyFlowCard extends HTMLElement {
             el.classList.toggle('stack', width > room * scale);
         }
     }
-    // With one charger its readings are level with the charger on the garage wall. With two, narrow: the DC
-    // charger's top lines up with SigenStor's and the AC charger sits above it; otherwise they are centred
-    // vertically.
+    // With one charger its readings are level with the charger on the garage wall; otherwise they are
+    // centred vertically.
     _alignChargers(narrow) {
         const chargers = this._id('chargers'), ac = this._id('acNode'), dc = this._id('dcNode');
-        if (ac.hidden !== dc.hidden) {
-            const art = ARTWORK['charger_day.png'];
-            Object.assign(chargers.style, { top: `${(PHOTO.top + art.at[1] + art.size[1] / 2) / SCENE.height * 100}%`, transform: '', minHeight: '0' });
-            if (narrow) chargers.style.left = `${(art.at[0] + art.size[0] + 14) / SCENE.width * 100}%`;
+        if (ac.hidden === dc.hidden) {
+            Object.assign(chargers.style, { top: '', transform: '', minHeight: '' });
             return;
         }
-        chargers.style.minHeight = '';
-        if (!narrow || dc.hidden) {
-            Object.assign(chargers.style, { top: '', transform: '' });
-            return;
-        }
-        const gap = ac.hidden ? 0 : parseFloat(getComputedStyle(chargers).rowGap) || 0;
-        Object.assign(chargers.style, { top: `${this.root.querySelector('.lower').offsetTop - (ac.hidden ? 0 : ac.offsetHeight) - gap}px`, transform: 'none' });
+        const art = ARTWORK['charger_day.png'];
+        Object.assign(chargers.style, { top: `${(PHOTO.top + art.at[1] + art.size[1] / 2) / SCENE.height * 100}%`, transform: '', minHeight: '0' });
+        if (narrow) chargers.style.left = `${(art.at[0] + art.size[0] + 14) / SCENE.width * 100}%`;
     }
     // The scene is shown at its preferred scale with the sides cropped; once the visible width reaches
     // the protected range, the whole scene scales down instead, so the house always stays in view.
