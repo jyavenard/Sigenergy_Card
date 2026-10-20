@@ -13,6 +13,7 @@ Contributed by Justin (pull request 1), merged onto the photo scene and day/nigh
 - PV strings can be objects with their own entities. A string with none of its entities is hidden, the Total row uses the system PV sensors when present, and a Third-party PV row appears when those sensors exist.
 - Optional lines: `show_lifetime` (on by default) adds the AC charger's energy consumed and both chargers' lifetime energy charged and discharged; `show_phase_mode` (off by default) shows the phase power mode under GRID. The DC charger's gear icon is hidden without a limit entity.
 - Battery level is shown to one decimal.
+- When the scene is taller than the photo (a card beside the side panels, such as a phone in landscape), the SigenStor and GRID readings drop into the spare room below the house, and their leaders lengthen to match.
 - On narrow cards in portrait (under 560 px, such as a phone held upright) the photo is cropped from the garage to the right wall, dropping the trees on both sides, so the house is shown larger. The SOLAR and HOME readings sit left of their leaders and the charger readings sit over the garage, with the DC charger level with SigenStor and the AC charger above it.
 - The SigenStor and GRID readings are aligned at the top, whatever their number of lines, and sit slightly higher; the grid line and the two leaders follow.
 - Power readings pick their unit: W below 1 kW (for example 40 W), kW up to 1000 kW and MW above.

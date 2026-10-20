@@ -273,7 +273,7 @@ class SigenergyFlowCard extends HTMLElement {
           <rect x="0" y="${-PHOTO.bleed}" width="${PHOTO.width}" height="${PHOTO.bleed + PHOTO.top + 40}" class="fadeRect" fill="url(#fadeTop)"/>
           <rect x="0" y="${PHOTO.top + PHOTO.height - 30}" width="${PHOTO.width}" height="${PHOTO.bottom + 30 + PHOTO.bleed}" class="fadeRect" fill="url(#fadeBottom)"/>
           <rect x="0" y="${-PHOTO.bleed}" width="520" height="${SCENE.height + 2 * PHOTO.bleed}" fill="url(#fadeLeft)"/>
-          ${LEADERS.map(d => `<path class="leader" d="${d}"/>`).join('')}
+          ${LEADERS.map((d, i) => `<path class="leader${i >= 2 ? ' lowerLeader' : ''}" data-d="${d}" d="${d}"/>`).join('')}
           ${flows}
         </svg>
         <div class="node lead" style="${placeAt(READINGS.pv)}"><button id="pvButton" title="Show PV string details"><strong id="pv">—</strong><small>SOLAR ›</small></button></div>
@@ -426,6 +426,11 @@ class SigenergyFlowCard extends HTMLElement {
         const chargers = this._id('chargers');
         chargers.style.left = `${(READINGS.chargers[narrow ? 1 : 0] / SCENE.width * 100).toFixed(3)}%`;
         this._alignChargers(narrow);
+        // When the scene is taller than the photo, the SigenStor and GRID row drops into the spare room below it.
+        const drop = Math.max(0, Math.min((height - SCENE.height * scale) / 2 - 12, 70 * scale));
+        this.root.querySelector('.lower').style.transform = drop ? `translateY(${drop}px)` : '';
+        for (const leader of this.root.querySelectorAll('.lowerLeader'))
+            leader.setAttribute('d', leader.dataset.d.replace(/V([\d.]+)/, (_, end) => `V${+end + drop / scale}`));
     }
     // Day between today's sunrise and sunset (as shown under the chart), or as sun.sun reports without a location.
     _isDay() {
