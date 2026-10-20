@@ -24,7 +24,7 @@ Contributed by Justin (pull request 1), merged onto the photo scene and day/nigh
 - Home flow redrawn as level and upright lines with small rounded corners: it runs level from the gateway, climbs beside the glass doors and follows the band above them to HOME's leader. A short branch crosses to the doors.
 - The branch continues the home flow's animation from the fork, at the same speed, instead of animating on its own.
 - Level and upright flow lines now glow like the diagonal ones (their blur area was empty).
-- New `style` option: `auto` (default), `day` or `night`. The day style uses a light theme with pale aqua background, white panels and dark text; night keeps the dark theme.
+- New `style` option: `auto` (default), `day` or `night`. The day style uses a light theme with pale aqua background, white panels and dark text, with light readings over the photo; night keeps the dark theme.
 - Documentation screenshots regenerated, and the README describes the style option and the flow animation speed.
 
 ## v42

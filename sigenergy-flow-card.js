@@ -99,7 +99,7 @@ const STYLES = {
         'pill': '#343b46', 'pill-fg': '#b8c3ce', 'legend': '#abb9c2', 'muted': '#8f9ea8', 'icon': '#b3c0c9', 'load-bar': '#3a4550', 'load-fill': '#b6d8db',
         'other-line': '#3f4c56', 'other-fill': '#5b6872', 'tip': 'rgba(17,25,29,.94)', 'tip-line': '#3f4c56', 'tip-shadow': '#0008', 'dialog': '#1a2227', 'dialog-line': '#35414a',
         'grid': '#43505a', 'axis': '#a5b3bf', 'cursor': '#9fb0bb', 'dot-edge': '#11191d', 'scene': '#11191d', 'fade': '#11191d', 'fade-opacity': 1, 'fade-left': .7,
-        'node-sub': '#d0dade', 'node-em': '#a5ecd9', 'node-shadow': '0 1px 2px #000,0 2px 10px #000c', 'leader': 'rgba(225,234,236,.55)',
+        'node-fg': '#edf3f6', 'node-sub': '#d0dade', 'node-em': '#a5ecd9', 'node-shadow': '0 1px 2px #000,0 2px 10px #000c', 'leader': 'rgba(225,234,236,.55)',
         'wire-on': 'rgba(99,214,193,.85)', 'comet': '#8ff5e1',
         'c-solar': '#ead66c', 'c-battery': '#69d4d1', 'c-grid': '#8d8bff', 'c-ac': '#efa66a', 'c-dc': '#c28aff', 'c-home': '#c7d8df',
         'pv0': '#6bd36b', 'pv1': '#5fd4dc', 'pv2': '#6a78f0', 'pv3': '#a868f0', 'pv4': '#efa66a', 'pv5': '#ead66c',
@@ -110,7 +110,7 @@ const STYLES = {
         'pill': '#e6eef4', 'pill-fg': '#5d6c7b', 'legend': '#5d6c7b', 'muted': '#7a8794', 'icon': '#5d6c7b', 'load-bar': '#d5e1ea', 'load-fill': '#3fb6c6',
         'other-line': '#c3d2dd', 'other-fill': '#9fb0bd', 'tip': 'rgba(255,255,255,.96)', 'tip-line': '#d3e0ea', 'tip-shadow': '#3b536a30', 'dialog': '#f7fafc', 'dialog-line': '#d3e0ea',
         'grid': '#d0dce5', 'axis': '#7a8794', 'cursor': '#7a8794', 'dot-edge': '#fff', 'scene': '#e4f2f7', 'fade': '#fff', 'fade-opacity': .7, 'fade-left': 1,
-        'node-sub': '#46535f', 'node-em': '#0b8f86', 'node-shadow': '0 0 2px #fff,0 0 5px #fff,0 0 12px #fffd', 'leader': 'rgba(40,55,70,.5)',
+        'node-fg': '#fff', 'node-sub': '#e6edf0', 'node-em': '#b4f2e2', 'node-shadow': '0 1px 2px #000,0 2px 10px #000c', 'leader': 'rgba(255,255,255,.7)',
         'wire-on': 'rgba(18,184,166,.9)', 'comet': '#5eead4',
         'c-solar': '#e2a900', 'c-battery': '#14b3ac', 'c-grid': '#6f6df2', 'c-ac': '#ea8a3c', 'c-dc': '#a35ff0', 'c-home': '#6b7f8c',
         'pv0': '#3fb83f', 'pv1': '#14b5c0', 'pv2': '#5465e8', 'pv3': '#9b52e8', 'pv4': '#ea8a3c', 'pv5': '#e2a900',
@@ -210,17 +210,16 @@ class SigenergyFlowCard extends HTMLElement {
       .glow,.comet{fill:none;stroke:var(--comet);stroke-linecap:round;stroke-linejoin:round;display:none}
       .glow{stroke-width:9;opacity:.6}.comet{stroke-width:3.4;opacity:.3}
       .flow.active.moving .glow,.flow.active.moving .comet{display:inline}
-      .node{position:absolute;z-index:2;white-space:nowrap;line-height:1.2;text-shadow:var(--node-shadow)}
+      .node{position:absolute;z-index:2;color:var(--node-fg);white-space:nowrap;line-height:1.2;text-shadow:var(--node-shadow)}
       .node strong{display:block;font-size:clamp(14px,calc(27px * var(--s)),30px);font-weight:580}
       .node small{display:block;font-size:clamp(11px,calc(19px * var(--s)),20px);color:var(--node-sub);margin-top:.15em;letter-spacing:.3px}
       .node em{display:block;font-size:clamp(10px,calc(13px * var(--s)),14px);font-style:normal;color:var(--node-em);margin-top:.2em}
       .node em:empty{display:none}
       .node em.stack span{display:block}.node em.stack span+span::before{content:none}
       .node em span+span::before{content:' · '}
-      :host([day]) .compact .sidecol .node,:host([day]) .compact .lower .node{background:rgba(255,255,255,.74);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border-radius:8px;padding:4px 8px;text-shadow:none}
       .narrow .lead{transform:translateX(calc(-100% - 24px * var(--s)));text-align:right}
       .compact .sidecol .node{max-width:calc(260px * var(--s))}.narrow .sidecol .node{max-width:calc(230px * var(--s))}.compact .sidecol em{white-space:normal}
-      .compact .lower .node+.node{max-width:calc(240px * var(--s))}.narrow .lower .node+.node{max-width:calc(150px * var(--s))}.compact .lower em{white-space:normal}.compact .lower .sep{display:none}.compact .lower #soc{display:block}
+      .compact .lower .node+.node{max-width:calc(240px * var(--s))}.narrow .lower .node+.node{max-width:calc(150px * var(--s))}.compact .lower em{white-space:normal}
       .compact .node em span{display:block}.compact .node em span+span::before{content:none}
       .sidecol{position:absolute;top:50%;transform:translateY(-50%);z-index:2;display:flex;flex-direction:column;justify-content:space-between;gap:max(14px,calc(24px * var(--s)));min-height:calc(184px * var(--s))}
       .lower{position:absolute;z-index:2;display:grid;align-items:start}.lower .node{position:static}
@@ -282,7 +281,7 @@ class SigenergyFlowCard extends HTMLElement {
             ? `<button id="homeButton" title="Show home power usage"><strong id="home">—</strong><small>HOME ›</small></button>`
             : `<strong id="home">—</strong><small>HOME</small>`}</div>
         <div class="lower" style="${lowerStyle}">
-          <div class="node"><strong id="battery">—</strong><small>SigenStor<span class="sep"> · </span><span id="soc">—</span></small><em id="battStatus"></em></div>
+          <div class="node"><strong id="battery">—</strong><small>SigenStor · <span id="soc">—</span></small><em id="battStatus"></em></div>
           <div class="node"><strong id="grid">—</strong><small>GRID</small><em id="gridStatus"></em><em id="phaseMode"></em></div>
         </div>
         <div class="sidecol" id="chargers">
