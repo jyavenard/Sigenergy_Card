@@ -5,11 +5,11 @@
 // the photo's edge rows, plus [bleed] more beyond the scene that shows when the card is taller than
 // the scene; its TOP and BOTTOM must equal top + bleed and bottom + bleed.
 // [keep] is the horizontal range (house and readings) that is never cropped as the card narrows.
-// Below [narrowBelow] px, [keepNarrow] (the house and its readings, without the trees on its right)
-// is protected instead, and the SOLAR and HOME readings sit left of their leaders to stay inside it.
-// Without charger readings to make room for, [keepNarrowBare] crops the left side as far as the garage.
+// Below [narrowBelow] px, [keepNarrow] (the house and its readings, from the garage to the right wall)
+// is protected instead; the SOLAR and HOME readings sit left of their leaders and the charger readings
+// move onto the garage, to stay inside it.
 const PHOTO = { width: 1676, height: 463, top: 100, bottom: 110, bleed: 100 };
-const SCENE = { width: PHOTO.width, height: PHOTO.top + PHOTO.height + PHOTO.bottom, keep: [160, 1320], keepNarrow: [150, 1215], keepNarrowBare: [390, 1215], narrowBelow: 560, scale: 1 };
+const SCENE = { width: PHOTO.width, height: PHOTO.top + PHOTO.height + PHOTO.bottom, keep: [160, 1320], keepNarrow: [385, 1215], narrowBelow: 560, scale: 1 };
 
 // Default entities for each `entities:` key in the card config, in priority order.
 // Plant sensors are the primary source (they combine every inverter and battery);
@@ -72,12 +72,12 @@ const BRANCHES = { homeBranch: 'homeFlow' };
 const LEADERS = ['M820 18 V200', 'M1110 18 V242', 'M712 498 V641', 'M1018 534 V641'];
 // Reading positions: [x, y, edge], where y is the reading's top or bottom edge. [lower] places the
 // SigenStor and GRID readings: the row's left edge, each reading's left edge, and the row's bottom edge.
-// [chargers] is the left edge of the charger readings, which are centred vertically.
+// [chargers] is the left edge of the charger readings, which are centred vertically: [wide, narrow].
 const READINGS = {
     pv: [832, 16, 'top'],
     home: [1122, 16, 'top'],
     lower: { left: 724, columns: [724, 1030], bottom: 628 },
-    chargers: 170,
+    chargers: [170, 410],
 };
 
 const FLOW_COLOR = '#63d6c1';
@@ -218,7 +218,7 @@ class SigenergyFlowCard extends HTMLElement {
       .node em.stack span{display:block}.node em.stack span+span::before{content:none}
       .node em span+span::before{content:' · '}
       .narrow .lead{transform:translateX(calc(-100% - 24px * var(--s)));text-align:right}
-      .compact .sidecol .node{max-width:calc(260px * var(--s))}.compact .sidecol em{white-space:normal}
+      .compact .sidecol .node{max-width:calc(260px * var(--s))}.narrow .sidecol .node{max-width:calc(230px * var(--s))}.compact .sidecol em{white-space:normal}
       .compact .lower .node+.node{max-width:calc(240px * var(--s))}.narrow .lower .node+.node{max-width:calc(150px * var(--s))}.compact .lower em{white-space:normal}.compact .lower .sep{display:none}.compact .lower #soc{display:block}
       .compact .node em span{display:block}.compact .node em span+span::before{content:none}
       .sidecol{position:absolute;top:50%;transform:translateY(-50%);z-index:2;display:flex;flex-direction:column;justify-content:space-between;gap:max(14px,calc(24px * var(--s)));min-height:calc(184px * var(--s))}
@@ -284,7 +284,7 @@ class SigenergyFlowCard extends HTMLElement {
           <div class="node"><strong id="battery">—</strong><small>SigenStor<span class="sep"> · </span><span id="soc">—</span></small><em id="battStatus"></em></div>
           <div class="node"><strong id="grid">—</strong><small>GRID</small><em id="gridStatus"></em><em id="phaseMode"></em></div>
         </div>
-        <div class="sidecol" style="left:${(READINGS.chargers / SCENE.width * 100).toFixed(3)}%">
+        <div class="sidecol" id="chargers">
           <div class="node" id="acNode"><strong id="ac">—</strong><small>AC CHARGER</small><em id="acSoc"></em><em id="acTotal"></em><em id="acLifetime" class="stack"></em></div>
           <div class="node" id="dcNode"><button id="dcButton" title="Adjust DC charging power limit"><strong id="dc">—</strong><small>DC CHARGER<span id="dcGear"> ⚙</span></small><em id="dcSoc"></em><em id="dcLifetime" class="stack"></em></button></div>
         </div>
@@ -391,7 +391,7 @@ class SigenergyFlowCard extends HTMLElement {
         const width = scene.clientWidth;
         if (!width) return;
         const narrow = width < SCENE.narrowBelow;
-        const [keepLeft, keepRight] = narrow ? (this._noChargers ? SCENE.keepNarrowBare : SCENE.keepNarrow) : SCENE.keep, keepWidth = keepRight - keepLeft;
+        const [keepLeft, keepRight] = narrow ? SCENE.keepNarrow : SCENE.keep, keepWidth = keepRight - keepLeft;
         let scale = width / Math.min(SCENE.width, Math.max(keepWidth, width / SCENE.scale));
         let height = SCENE.height * scale;
         if (sidebar.offsetTop === scene.offsetTop && sidebar.lastElementChild) {
@@ -408,6 +408,7 @@ class SigenergyFlowCard extends HTMLElement {
         plane.style.setProperty('--s', scale);
         plane.classList.toggle('compact', scale < .6);
         plane.classList.toggle('narrow', narrow);
+        this._id('chargers').style.left = `${(READINGS.chargers[narrow ? 1 : 0] / SCENE.width * 100).toFixed(3)}%`;
     }
     // Day between today's sunrise and sunset (as shown under the chart), or as sun.sun reports without a location.
     _isDay() {
@@ -622,11 +623,11 @@ class SigenergyFlowCard extends HTMLElement {
         return v === null ? '—' : formatPower(v)
     }
     _kwh(v) {
-        return `${v.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh`;
+        return `${v.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}\u00A0kWh`;
     }
     // Lifetime charged / discharged; discharged (V2G / V2H) is left out while it reads 0.
     _lifetime(charged, discharged) {
-        return [charged === null ? '' : `Lifetime ↓ ${this._kwh(charged)}`, discharged === null || discharged === 0 ? '' : `↑ ${this._kwh(discharged)}`];
+        return [charged === null ? '' : `Lifetime ↓\u00A0${this._kwh(charged)}`, discharged === null || discharged === 0 ? '' : `↑\u00A0${this._kwh(discharged)}`];
     }
     _energy(v) {
         return v === null ? '—' : `${v.toFixed(2)} kWh`
@@ -738,10 +739,6 @@ class SigenergyFlowCard extends HTMLElement {
         this._id('dcGear').hidden = !this._has(e('dc_charger_limit'));
         this._id('acNode').hidden = !hasAc;
         this._id('dcNode').hidden = !hasDc;
-        if (this._noChargers !== (!hasAc && !hasDc)) {
-            this._noChargers = !hasAc && !hasDc;
-            this._fitScene();
-        }
         this._id('legendAC').hidden = !hasAc;
         this._id('legendDC').hidden = !hasDc;
         const grid = imp !== null && imp > 0 ? imp : exp !== null && exp > 0 ? -exp : imp ?? (exp === null ? null : -exp);
