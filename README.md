@@ -2,7 +2,8 @@
 
 A standalone Home Assistant Lovelace card that recreates the SigenCloud / mySigen power-flow dashboard for a Sigenergy installation (solar, SigenStor battery, Sigen Gateway, grid, and optional AC/DC EV chargers).
 
-- Animated power flow between the solar panels, SigenStor, gateway, home and grid. Each highlight moves in the direction power is flowing, faster at higher power, and stops when idle.
+- Animated power flow between the solar panels, SigenStor, gateway, home and grid, drawn over a photo of the house. Each highlight moves in the direction power is flowing, faster at higher power, and stops when idle.
+- Day and night looks: a light theme with the daytime photo between sunrise and sunset, a dark theme with the night photo otherwise. Force either with the `style` option.
 - Power readings for solar, home, SigenStor (with battery state of charge), grid, and the AC and DC chargers when present.
 - Today's energy statistics and a battery level panel. Tap any statistic or the battery level to open that sensor's details and history, or the stored energy (e.g. 4.4 of 40.3 kWh) for a chart of the energy held in the battery today.
 - Power metrics chart from midnight to now, with sunrise and sunset times for your Home Assistant location. Hover (or tap) the chart to see every value at that time.
@@ -13,6 +14,8 @@ A standalone Home Assistant Lovelace card that recreates the SigenCloud / mySige
 No other custom cards (button-card, card-mod, Mushroom) are needed.
 
 ## Screenshots
+
+The screenshots show the day style.
 
 ### Desktop
 
@@ -69,7 +72,7 @@ The artwork is built into `sigenergy-flow-card.js`, so the card is a single file
    type: custom:sigenergy-flow-card
    ```
 
-HACS offers updates when a new version is published; download it and reload the browser.
+HACS offers an update whenever a new release is published on GitHub (see [CHANGELOG.md](CHANGELOG.md)); download it and reload the browser.
 
 If your dashboards are configured in YAML mode, HACS cannot register the resource; add it yourself as below, with the URL `/hacsfiles/Sigenergy_Card/sigenergy-flow-card.js`.
 
@@ -103,6 +106,7 @@ All options are optional.
 | `home_entities` | `[]` | Power entities listed when tapping **HOME**. Without it, HOME is a plain label. |
 | `ac_charger_soc` | none | Battery level entity of the vehicle on the AC charger. |
 | `ac_charger_range` | none | Range entity of that vehicle. Only shown together with `ac_charger_soc`. |
+| `style` | `auto` | Artwork to show: `day`, `night` or `auto` (day between sunrise and sunset). |
 
 ### Example
 
@@ -120,6 +124,23 @@ home_entities:
     icon: mdi:pool
   - sensor.hot_water_power
 ```
+
+### Style
+
+`style` selects the artwork and theme:
+
+- `auto` (default): day between today's sunrise and sunset (as shown under the chart; `sun.sun` is used if no location is set), night otherwise.
+- `day`: always the light theme with the daytime photo.
+- `night`: always the dark theme with the night photo.
+
+```yaml
+type: custom:sigenergy-flow-card
+style: day
+```
+
+### Flow animation
+
+Each flow's highlight moves from its source to its destination at `60 + 35 × √kW` scene units per second, using that flow's own power, so a 5 kW flow runs about 1.6 times faster than a 0.6 kW one. A flow below 0.025 kW is idle. The short branch of the home line into the glass doors continues the home flow's animation from the point where it forks, at the same speed. With *reduce motion* enabled in the operating system, the lines are drawn without moving highlights.
 
 ### PV strings
 
@@ -156,7 +177,7 @@ The DC charger's vehicle state of charge is hidden while the charger is idle and
 
 ## Changing the artwork
 
-The scene images in `images/` are embedded in the card. After changing `bg_villa_pv.png`, `ac_charger_bg.png`, `bg_sigenstor.png` or `bg_gateway.png`, regenerate the embedded copy (requires [Pillow](https://python-pillow.org)):
+The scene photos `images/house_day.png` and `images/house_night.png` are embedded in the card, each extended with a band above and below for the readings. After changing either, regenerate the embedded copy (requires [Pillow](https://python-pillow.org)):
 
 ```sh
 python3 tools/embed-artwork.py
