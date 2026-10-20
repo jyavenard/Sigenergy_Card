@@ -62,17 +62,17 @@ const FLOWS = {
     inverterFlow: 'M787 433 H838.5',
     homeFlow: 'M899 413 H1004 C1015 413 1024 405 1024 394 V262 C1024 253 1030 248.5 1040 247.5 L1110 242',
     homeBranch: 'M1024 356 H1059',
-    gridFlow: 'M863 473 V500 C863 512 872 518 888 521 L1018 552',
+    gridFlow: 'M863 473 V482 C863 494 872 500 888 503 L1018 534',
 };
 // A branch continues its parent's animation from the point where it leaves the parent's path.
 const BRANCHES = { homeBranch: 'homeFlow' };
-const LEADERS = ['M820 18 V200', 'M1110 18 V242', 'M712 498 V665', 'M1018 552 V665'];
-// Reading positions: [x, y, edge], where y is the reading's top or bottom edge.
+const LEADERS = ['M820 18 V200', 'M1110 18 V242', 'M712 498 V641', 'M1018 534 V641'];
+// Reading positions: [x, y, edge], where y is the reading's top or bottom edge. [lower] places the
+// SigenStor and GRID readings: the row's left edge, each reading's left edge, and the row's bottom edge.
 const READINGS = {
     pv: [832, 16, 'top'],
     home: [1122, 16, 'top'],
-    battery: [724, 652, 'bottom'],
-    grid: [1030, 652, 'bottom'],
+    lower: { left: 724, columns: [724, 1030], bottom: 628 },
     chargers: [170, 204, 'top'],
 };
 
@@ -122,6 +122,10 @@ const formatPower = kw => {
     const k = Math.abs(kw);
     return k < 999.995 ? `${k.toFixed(2)} kW` : `${(k / 1000).toFixed(2)} MW`;
 };
+// SigenStor and GRID share one row so their tops line up whatever each one's number of lines;
+// the row hangs from its bottom edge, which keeps the taller block inside the scene.
+const lowerStyle = (({ left, columns: [first, second], bottom }) =>
+    `left:${(left / SCENE.width * 100).toFixed(3)}%;width:${((SCENE.width - left) / SCENE.width * 100).toFixed(3)}%;bottom:${((SCENE.height - bottom) / SCENE.height * 100).toFixed(3)}%;grid-template-columns:${((second - first) / (SCENE.width - left) * 100).toFixed(3)}% auto`)(READINGS.lower);
 const placeAt = ([x, y, edge]) => `left:${(x / SCENE.width * 100).toFixed(3)}%;${edge}:${((edge === 'top' ? y : SCENE.height - y) / SCENE.height * 100).toFixed(3)}%`;
 
 class SigenergyFlowCard extends HTMLElement {
@@ -211,6 +215,7 @@ class SigenergyFlowCard extends HTMLElement {
       .node em span+span::before{content:' · '}
       .compact .node em span{display:block}.compact .node em span+span::before{content:none}
       .sidecol{position:absolute;z-index:2;display:flex;flex-direction:column;justify-content:space-between;gap:max(14px,calc(24px * var(--s)));min-height:calc(184px * var(--s))}
+      .lower{position:absolute;z-index:2;display:grid;align-items:start}.lower .node{position:static}
       .sidecol .node{position:static;border-left:1px solid var(--leader);padding-left:max(6px,calc(10px * var(--s)))}
       .node button{all:unset;cursor:pointer;display:block}.node button:focus-visible{outline:2px solid #71d3d1}
       .sidebar{display:flex;flex-direction:column;gap:12px}.panel{background:var(--panel);border:1px solid var(--panel-line);border-radius:12px;padding:13px}
@@ -268,8 +273,10 @@ class SigenergyFlowCard extends HTMLElement {
         <div class="node" style="${placeAt(READINGS.home)}">${this.config.home_entities.length
             ? `<button id="homeButton" title="Show home power usage"><strong id="home">—</strong><small>HOME ›</small></button>`
             : `<strong id="home">—</strong><small>HOME</small>`}</div>
-        <div class="node" style="${placeAt(READINGS.battery)}"><strong id="battery">—</strong><small>SigenStor · <span id="soc">—</span></small><em id="battStatus"></em></div>
-        <div class="node" style="${placeAt(READINGS.grid)}"><strong id="grid">—</strong><small>GRID</small><em id="gridStatus"></em><em id="phaseMode"></em></div>
+        <div class="lower" style="${lowerStyle}">
+          <div class="node"><strong id="battery">—</strong><small>SigenStor · <span id="soc">—</span></small><em id="battStatus"></em></div>
+          <div class="node"><strong id="grid">—</strong><small>GRID</small><em id="gridStatus"></em><em id="phaseMode"></em></div>
+        </div>
         <div class="sidecol" style="${placeAt(READINGS.chargers)}">
           <div class="node" id="acNode"><strong id="ac">—</strong><small>AC CHARGER</small><em id="acSoc"></em><em id="acTotal"></em><em id="acLifetime" class="stack"></em></div>
           <div class="node" id="dcNode"><button id="dcButton" title="Adjust DC charging power limit"><strong id="dc">—</strong><small>DC CHARGER<span id="dcGear"> ⚙</span></small><em id="dcSoc"></em><em id="dcLifetime" class="stack"></em></button></div>
