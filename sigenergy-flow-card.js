@@ -140,6 +140,8 @@ class SigenergyFlowCard extends HTMLElement {
         this.config = {
             pv_strings: ['PV1', 'PV2', 'PV3', 'PV4'],
             home_entities: [],
+            show_lifetime: true,
+            show_phase_mode: false,
             ...config
         };
         // Each string is a name, which reads the Sigenergy pattern sensor.sigen_inverter_pv<n>_*, or an object
@@ -731,11 +733,11 @@ class SigenergyFlowCard extends HTMLElement {
         this._text('grid', this._power(grid));
         this._text('gridStatus', grid === null ? '' : grid > 0.025 ? 'Importing' : grid < -.025 ? 'Exporting' : 'Idle');
         const phase = this._hass.states[e('phase_mode')]?.state;
-        this._text('phaseMode', phase === 'on' ? 'Power Per Phase Mode' : phase === 'off' ? 'Total Power Mode' : '');
+        this._text('phaseMode', !this.config.show_phase_mode ? '' : phase === 'on' ? 'Power Per Phase Mode' : phase === 'off' ? 'Total Power Mode' : '');
         const acTotal = kw('ac_charger_total_energy');
-        this._text('acTotal', acTotal === null ? '' : `${this._kwh(acTotal)} consumed`);
-        this._parts('acLifetime', this._lifetime(kw('ac_charger_lifetime_charged_energy'), kw('ac_charger_lifetime_discharged_energy')));
-        this._parts('dcLifetime', this._lifetime(kw('dc_charger_lifetime_charged_energy'), kw('dc_charger_lifetime_discharged_energy')));
+        this._text('acTotal', !this.config.show_lifetime || acTotal === null ? '' : `${this._kwh(acTotal)} consumed`);
+        this._parts('acLifetime', !this.config.show_lifetime ? [] : this._lifetime(kw('ac_charger_lifetime_charged_energy'), kw('ac_charger_lifetime_discharged_energy')));
+        this._parts('dcLifetime', !this.config.show_lifetime ? [] : this._lifetime(kw('dc_charger_lifetime_charged_energy'), kw('dc_charger_lifetime_discharged_energy')));
         this._text('ac', this._power(ac));
         this._text('dc', this._power(dc));
         // ac_charger_soc / ac_charger_range at the top level are the original keys and still work.

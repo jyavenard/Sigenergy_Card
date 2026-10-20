@@ -108,6 +108,8 @@ All options are optional.
 | `home_entities` | `[]` | Power entities listed when tapping **HOME**. Without it, HOME is a plain label. |
 | `ac_charger_soc` | none | Battery level entity of the vehicle on the AC charger. Same as `entities.ac_charger_vehicle_soc`. |
 | `ac_charger_range` | none | Range entity of that vehicle. Only shown together with `ac_charger_soc`. Same as `entities.ac_charger_vehicle_range`. |
+| `show_lifetime` | `true` | Show the AC charger's energy consumed and each charger's lifetime energy charged and discharged. |
+| `show_phase_mode` | `false` | Show the phase power mode under **GRID**. |
 | `style` | `auto` | Artwork and theme: `day`, `night` or `auto` (day between sunrise and sunset). |
 
 ### Example
@@ -279,7 +281,7 @@ The DC charger is attached to an inverter, so its entities are inverter sensors 
 
 ### Phase power mode
 
-Under **GRID**, the card shows the inverter's phase balancing mode from `switch.sigen_plant_independent_phase_power_control`. The line is hidden if the switch does not exist.
+With `show_phase_mode: true` (off by default), the card shows the inverter's phase balancing mode under **GRID**, from `switch.sigen_plant_independent_phase_power_control`. The line is hidden if the switch does not exist.
 
 - **Power Per Phase Mode** (switch on): each phase is tracked and balanced individually.
 - **Total Power Mode** (switch off): the sum of all three phases is balanced, so import on one phase can offset export on another.
@@ -291,10 +293,10 @@ Each charger's reading and chart series only appear if its power entity exists:
 - AC charger: `sensor.sigen_ac_charger_charging_power`
 - DC charger: `sensor.sigen_inverter_dc_charger_output_power`
 
-Under each charger's power the card can also show:
+Unless `show_lifetime: false`, the card also shows under each charger's power:
 
 - AC charger: energy consumed (`sensor.sigen_ac_charger_total_energy_consumed`).
-- Both chargers: a lifetime line, e.g. `Lifetime ↓ 3,456.7 kWh · ↑ 12.3 kWh` (charged / discharged). The discharged part only appears for bidirectional (V2G / V2H) charging, i.e. while it is above 0.
+- Both chargers: lifetime energy, e.g. `Lifetime ↓ 3,456.7 kWh` (charged) and `↑ 12.3 kWh` (discharged). The discharged part only appears for bidirectional (V2G / V2H) charging, i.e. while it is above 0.
 
 Each line is hidden when its entities do not exist.
 
