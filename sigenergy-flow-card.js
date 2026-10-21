@@ -1,4 +1,4 @@
-/* Sigenergy Flow Card v46 — standalone Home Assistant Lovelace custom card */
+/* Sigenergy Flow Card v47 — standalone Home Assistant Lovelace custom card */
 
 // Scene coordinates: the house photo (1676x557 units) sits between a band above it for the SOLAR and HOME
 // readings and a band below it for SigenStor and GRID. tools/embed-artwork.py builds both bands from
@@ -34,8 +34,6 @@ const DEFAULT_ENTITIES = {
     dc_charger_power: ['sensor.sigen_inverter_dc_charger_output_power'],
     dc_charger_vehicle_soc: ['sensor.sigen_inverter_dc_charger_vehicle_soc'],
     dc_charger_limit: ['number.sigen_inverter_dc_charger_max_charging_power_limit'],
-    ac_charger_lifetime_charged_energy: ['sensor.sigen_plant_total_charged_energy_of_the_evac'],
-    ac_charger_lifetime_discharged_energy: ['sensor.sigen_plant_total_discharged_energy_of_the_evac'],
     dc_charger_lifetime_charged_energy: ['sensor.sigen_plant_total_charged_energy_of_the_evdc'],
     dc_charger_lifetime_discharged_energy: ['sensor.sigen_plant_total_discharged_energy_of_the_evdc'],
     // PV Strings dialog: Total row (Sigenergy PV inputs only) and the third-party PV row.
@@ -47,6 +45,13 @@ const DEFAULT_ENTITIES = {
     daily_grid_import_energy: ['sensor.sigen_plant_daily_grid_import_energy'],
     daily_grid_export_energy: ['sensor.sigen_plant_daily_grid_export_energy'],
     daily_battery_charge_energy: ['sensor.sigen_plant_daily_battery_charge_energy', 'sensor.sigen_inverter_daily_charge_energy'],
+    // Energy statistics: lifetime counters, whose change per interval feeds the flow estimate.
+    stat_pv: ['sensor.sigen_plant_total_pv_generation'],
+    stat_battery_charge: ['sensor.sigen_plant_total_charged_energy_of_the_ess'],
+    stat_battery_discharge: ['sensor.sigen_plant_total_discharged_energy_of_the_ess'],
+    stat_grid_import: ['sensor.sigen_plant_total_imported_energy'],
+    stat_grid_export: ['sensor.sigen_plant_total_exported_energy'],
+    stat_evac_charge: ['sensor.sigen_plant_total_charged_energy_of_the_evac', 'sensor.sigen_ac_charger_total_energy_consumed'],
     daily_battery_discharge_energy: ['sensor.sigen_plant_daily_battery_discharge_energy', 'sensor.sigen_inverter_daily_discharge_energy'],
 };
 const PV_KEYS = ['voltage', 'current', 'power', 'daily_energy', 'accumulated_energy'];
@@ -104,6 +109,7 @@ const STYLES = {
         'node-fg': '#edf3f6', 'node-sub': '#d0dade', 'node-em': '#a5ecd9', 'node-shadow': '0 1px 2px #000,0 2px 10px #000c', 'leader': 'rgba(225,234,236,.55)',
         'wire-on': 'rgba(99,214,193,.85)', 'comet': '#8ff5e1',
         'c-solar': '#ead66c', 'c-battery': '#69d4d1', 'c-grid': '#8d8bff', 'c-ac': '#efa66a', 'c-dc': '#c28aff', 'c-home': '#c7d8df',
+        'sk-evdc': '#f0b44c', 'sk-evac': '#d9726a', 'sk-load': '#9a6cf0',
         'pv0': '#6bd36b', 'pv1': '#5fd4dc', 'pv2': '#6a78f0', 'pv3': '#a868f0', 'pv4': '#efa66a', 'pv5': '#ead66c',
     },
     day: {
@@ -115,11 +121,82 @@ const STYLES = {
         'node-fg': '#fff', 'node-sub': '#f2f6f8', 'node-em': '#c4f6ea', 'node-shadow': '0 0 2px #000c,0 1px 3px #000,0 2px 10px #000d', 'leader': 'rgba(255,255,255,.7)',
         'wire-on': 'rgba(18,184,166,.9)', 'comet': '#5eead4',
         'c-solar': '#e2a900', 'c-battery': '#14b3ac', 'c-grid': '#6f6df2', 'c-ac': '#ea8a3c', 'c-dc': '#a35ff0', 'c-home': '#6b7f8c',
+        'sk-evdc': '#e39a1b', 'sk-evac': '#d4584f', 'sk-load': '#7f4ee0',
         'pv0': '#3fb83f', 'pv1': '#14b5c0', 'pv2': '#5465e8', 'pv3': '#9b52e8', 'pv4': '#ea8a3c', 'pv5': '#e2a900',
     },
 };
 const styleVars = style => Object.entries(STYLES[style]).map(([name, value]) => `--${name}:${value}`).join(';');
 const COMET_LAYERS = [1, .78, .56, .36, .18];
+
+// Energy statistics: sources feed consumers.
+const STAT_SOURCES = [
+    { name: 'SOLAR', color: 'var(--c-solar)', key: 'stat_pv', caption: 'Solar' },
+    { name: 'BATTERY', color: 'var(--c-battery)', key: 'stat_battery_discharge', caption: 'Battery' },
+    { name: 'EVDC', color: 'var(--sk-evdc)', key: 'dc_charger_lifetime_discharged_energy', caption: 'EVDC' },
+    { name: 'GRID', color: 'var(--c-grid)', key: 'stat_grid_import', caption: 'Imported' },
+];
+const STAT_SINKS = [
+    { name: 'BATTERY', color: 'var(--c-battery)', key: 'stat_battery_charge', caption: 'Charged' },
+    { name: 'EVDC', color: 'var(--sk-evdc)', key: 'dc_charger_lifetime_charged_energy', caption: 'EVDC Charged' },
+    { name: 'LOAD', color: 'var(--sk-load)', key: null, caption: 'Load' },
+    { name: 'EVAC', color: 'var(--sk-evac)', key: 'stat_evac_charge', caption: 'EVAC Charged' },
+    { name: 'GRID', color: 'var(--c-grid)', key: 'stat_grid_export', caption: 'Exported' },
+];
+// How readily each source (solar, battery, EVDC, grid) feeds each consumer (battery, EVDC, load, EVAC, export); zero
+// where a device would feed itself. Fitted so that the split reproduces the flows the Sigenergy app shows.
+const STAT_AFFINITY = [
+    [0.7921, 1, 0.0609, 0.0208, 0.0303],
+    [0, 87.6811, 0.108, 0.0151, 0.0049],
+    [0.02, 0, 0.02, 0.02, 0.02],
+    [0.0247, 0.0192, 0.1678, 0.0631, 0],
+];
+const STAT_RANGES = ['Day', 'Week', 'Month', 'Year', 'Lifetime'];
+const STAT_PERIODS = { Day: '5minute', Week: 'hour', Month: 'hour', Year: 'day', Lifetime: 'day' };
+
+// Splits one interval's energy into a sources x consumers matrix with those totals (iterative proportional
+// fitting from STAT_AFFINITY), so that sums over many intervals keep when each flow happened.
+const allocateFlows = (sources, sinks) => {
+    const flows = sources.map(() => sinks.map(() => 0));
+    const supply = sources.reduce((a, b) => a + b, 0), demand = sinks.reduce((a, b) => a + b, 0);
+    if (supply <= 1e-9 || demand <= 1e-9) return flows;
+    const wanted = sinks.map(v => v * supply / demand);
+    sources.forEach((source, i) => wanted.forEach((sink, j) => { flows[i][j] = source > 0 && sink > 0 ? STAT_AFFINITY[i][j] : 0; }));
+    for (let pass = 0; pass < 60; pass++) {
+        flows.forEach((row, i) => {
+            const total = row.reduce((a, b) => a + b, 0);
+            if (total > 0) row.forEach((_, j) => { row[j] *= sources[i] / total; });
+        });
+        wanted.forEach((sink, j) => {
+            const total = flows.reduce((a, row) => a + row[j], 0);
+            if (total > 0) flows.forEach(row => { row[j] *= sink / total; });
+        });
+    }
+    return flows;
+};
+
+// First and last instant (exclusive) of the range that contains [date].
+const statWindow = (range, date) => {
+    const y = date.getFullYear(), m = date.getMonth(), d = date.getDate();
+    if (range === 'Day') return [new Date(y, m, d), new Date(y, m, d + 1)];
+    if (range === 'Week') { const start = d - (date.getDay() + 6) % 7; return [new Date(y, m, start), new Date(y, m, start + 7)]; }
+    if (range === 'Month') return [new Date(y, m, 1), new Date(y, m + 1, 1)];
+    if (range === 'Year') return [new Date(y, 0, 1), new Date(y + 1, 0, 1)];
+    return [new Date(2015, 0, 1), new Date()];
+};
+const statStep = (range, date, direction) => {
+    const y = date.getFullYear(), m = date.getMonth(), d = date.getDate();
+    if (range === 'Day') return new Date(y, m, d + direction);
+    if (range === 'Week') return new Date(y, m, d + 7 * direction);
+    if (range === 'Month') return new Date(y, m + direction, 1);
+    return new Date(y + direction, 0, 1);
+};
+const statLabel = (range, date) => {
+    const [start, end] = statWindow(range, date), day = d => d.toLocaleDateString('en-CA');
+    if (range === 'Day') return day(start);
+    if (range === 'Week') return `${day(start)} – ${day(new Date(end - 1))}`;
+    if (range === 'Month') return day(start).slice(0, 7);
+    return range === 'Year' ? String(start.getFullYear()) : 'Lifetime';
+};
 
 // Power given in kW, shown as W below 1 kW and MW from 1000 kW.
 const formatPower = kw => {
@@ -152,6 +229,8 @@ class SigenergyFlowCard extends HTMLElement {
             home_entities: [],
             show_lifetime: true,
             show_phase_mode: false,
+            show_energy_statistics: true,
+            debug_energy_statistics: false,
             ...config
         };
         // Each string is a name, which reads the Sigenergy pattern sensor.sigen_inverter_pv<n>_*, or an object
@@ -178,6 +257,7 @@ class SigenergyFlowCard extends HTMLElement {
         if (!previous || this._day !== today) {
             this._day = today;
             this._loadHistory();
+            this._loadStatistics();
         }
     }
     getCardSize() {
@@ -234,6 +314,16 @@ class SigenergyFlowCard extends HTMLElement {
       .stat{all:unset;box-sizing:border-box;background:var(--tile);border-radius:8px;padding:10px;cursor:pointer;transition:background .2s}.stat:hover{background:var(--tile-hover)}.stat:focus-visible{outline:2px solid #71d3d1}.stat small{font-size:11px;color:var(--tile-sub);display:block}.stat b{font-size:18px;display:block;margin-top:4px}
       .link{all:unset;box-sizing:border-box;display:block;width:100%;cursor:pointer;border-radius:6px}.link:hover{filter:brightness(1.2)}.link:focus-visible{outline:2px solid #71d3d1}
       .socbar{height:10px;background:var(--bar);border-radius:8px;overflow:hidden;margin:9px 0}.socfill{height:100%;background:var(--bar-fill);width:0%;transition:width .5s}
+      .statpanel{margin-top:14px}.statbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:10px 0}
+      .statnav{display:flex;align-items:center;gap:4px;background:var(--tile);border-radius:10px;padding:3px}.statnav span{min-width:170px;text-align:center;font-size:14px;font-variant-numeric:tabular-nums}
+      .statnav button{all:unset;cursor:pointer;width:34px;height:30px;text-align:center;font-size:20px;line-height:30px;border-radius:8px;color:var(--icon)}.statnav button:hover{background:var(--tile-hover)}.statnav button[disabled]{opacity:.3;cursor:default}.statnav button:focus-visible,.statrange:focus-visible{outline:2px solid #71d3d1}
+      .statrange{appearance:none;-webkit-appearance:none;background:var(--tile);color:var(--fg);border:1px solid var(--panel-line);border-radius:10px;padding:7px 28px 7px 12px;font:inherit;font-size:14px;cursor:pointer}
+      #statChart{width:100%;display:block}.skn{cursor:pointer;transition:opacity .2s}.skn:focus-visible{outline:none}.skn:focus-visible rect.skbox{stroke:#71d3d1;stroke-width:2}.skr{opacity:.5;transition:opacity .2s}.skr.on{opacity:.8}.skr.dim{opacity:.1}.skn.dim{opacity:.3}
+      .sktext{font-family:inherit;fill:#142024;pointer-events:none}.skpct{font-family:inherit;font-size:11px;fill:var(--fg);pointer-events:none;paint-order:stroke;stroke:var(--panel);stroke-width:3px}
+      .statsum{text-align:center;margin:12px 0 8px;padding:10px;border:1px solid var(--panel-line);border-radius:12px}.statsum b{font-size:24px}.statsum small{font-size:13px;color:var(--sub);margin-left:4px}.statsum div{color:var(--sub);font-size:14px;margin-top:2px}
+      .statdata{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-top:8px;font-size:13px}.statdata button{all:unset;cursor:pointer;color:var(--c-battery)}.statdata a{color:var(--c-battery);cursor:pointer}
+      .statpanel pre{user-select:text;-webkit-user-select:text;white-space:pre-wrap;font-family:inherit;font-size:12px;margin:10px 0 0}
+      .statcards{display:flex;flex-wrap:wrap;gap:9px}.statcard{flex:1 1 140px;box-sizing:border-box;background:var(--tile);border-radius:10px;padding:10px 12px}.statcard b{font-size:18px;display:block}.statcard span{font-size:13px;color:var(--tile-sub);display:block}
       .chartpanel{margin-top:14px}.charthead{display:flex;justify-content:space-between;align-items:center}.legend{font-size:11px;color:var(--legend)}
       .legend span{margin-right:12px}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
       .sun-times{display:flex;justify-content:space-between;gap:12px;margin-top:10px;padding:10px 15px;border-radius:24px;background:var(--pill);color:var(--pill-fg);font-size:12px}
@@ -290,7 +380,7 @@ class SigenergyFlowCard extends HTMLElement {
           <div class="node"><strong id="grid">—</strong><small>GRID</small><em id="gridStatus"></em><em id="phaseMode"></em></div>
         </div>
         <div class="sidecol" id="chargers">
-          <div class="node" id="acNode"><strong id="ac">—</strong><small>AC CHARGER</small><em id="acSoc"></em><em id="acTotal"></em><em id="acLifetime" class="lifetime stack"></em></div>
+          <div class="node" id="acNode"><strong id="ac">—</strong><small>AC CHARGER</small><em id="acSoc"></em><em id="acTotal"></em></div>
           <div class="node" id="dcNode"><button id="dcButton" title="Adjust DC charging power limit"><strong id="dc">—</strong><small>DC CHARGER<span id="dcGear"> ⚙</span></small><em id="dcSoc"></em><em id="dcLifetime" class="lifetime stack"></em></button></div>
         </div>
       </div></section><aside class="sidebar">
@@ -301,6 +391,9 @@ class SigenergyFlowCard extends HTMLElement {
       <section class="panel chartpanel"><div class="charthead"><h3>Power metrics · Today</h3><span class="muted" id="chartStatus">Loading history…</span></div>
       <div class="legend">${legend}</div>
       <div class="chart-wrap"><svg id="chart"></svg><div class="tip" id="chartTip" hidden></div></div><div class="sun-times"><span id="sunrise">Sunrise —</span><span id="sunset">Sunset —</span></div></section>
+      <section class="panel statpanel" id="statPanel"${this.config.show_energy_statistics ? '' : ' hidden'}><div class="charthead"><h3>Energy statistics</h3><span class="muted" id="statStatus">Loading…</span></div>
+      <div class="statbar"><div class="statnav"><button id="statPrev" title="Previous" aria-label="Previous">‹</button><span id="statDate">—</span><button id="statNext" title="Next" aria-label="Next">›</button></div><select class="statrange" id="statRange" aria-label="Range">${STAT_RANGES.map(range => `<option>${range}</option>`).join('')}</select></div>
+      <svg id="statChart" role="group" aria-label="Energy flows, estimated"></svg><div class="statsum" id="statSummary" hidden></div><div class="statcards" id="statCards"></div><pre class="muted" id="statDebug" hidden></pre><div class="statdata" id="statData" hidden><button id="statCopy">Copy the recorded data</button><a id="statDownload" download="sigenergy-statistics.json">Download (JSON)</a><span class="muted" id="statCopied"></span></div></section>
     </ha-card>
     <dialog id="pvDialog" aria-labelledby="pvTitle"><div class="dlg">
       <div class="dlg-head"><h2 id="pvTitle">PV Strings</h2><button id="pvClose" title="Close" aria-label="Close">✕</button></div>
@@ -373,6 +466,7 @@ class SigenergyFlowCard extends HTMLElement {
             svg.addEventListener('pointerleave', () => this._hideHover(svg, box));
         }
         this._id('dcButton').addEventListener('click', () => this._moreInfo(this._ent('dc_charger_limit')));
+        this._wireStatistics();
         if (this._flowStates) for (const id of Object.keys(this._flowStates)) this._applyFlowClass(id);
     }
     _observeCharts() {
@@ -383,6 +477,7 @@ class SigenergyFlowCard extends HTMLElement {
         this._chartObserver.observe(this._id('chart'));
         this._chartObserver.observe(this._id('pvChart'));
         this._chartObserver.observe(this._id('energyChart'));
+        this._chartObserver.observe(this._id('statChart'));
         const scene = this._id('scene'), sidebar = this.root.querySelector('.sidebar');
         scene.fit = sidebar.fit = () => this._fitScene();
         this._chartObserver.observe(scene);
@@ -397,7 +492,7 @@ class SigenergyFlowCard extends HTMLElement {
     _stackLifetime(narrow, scale) {
         const art = ARTWORK['charger_day.png'], single = this._id('acNode').hidden !== this._id('dcNode').hidden;
         const room = narrow ? 230 : single ? art.at[0] - READINGS.chargers[0] - 8 : 420;
-        for (const id of ['acLifetime', 'dcLifetime']) {
+        for (const id of ['dcLifetime']) {
             const el = this._id(id);
             el.classList.remove('stack');
             el.style.whiteSpace = 'nowrap';
@@ -696,6 +791,7 @@ class SigenergyFlowCard extends HTMLElement {
         if (!this.root) return;
         if (!this._chartObserver) this._observeCharts();
         if (!this._flowFrame) this._startFlowAnimation();
+        this._statTimer ??= setInterval(() => { if (this._statCurrent()) this._loadStatistics(); }, 300000);
     }
     _startFlowAnimation() {
         if (this._flowFrame) cancelAnimationFrame(this._flowFrame);
@@ -767,6 +863,8 @@ class SigenergyFlowCard extends HTMLElement {
         if (this._chartObserver) { this._chartObserver.disconnect(); this._chartObserver = null; }
         if (this._flowFrame) cancelAnimationFrame(this._flowFrame);
         this._flowFrame = null;
+        clearInterval(this._statTimer);
+        this._statTimer = null;
     }
     _update() {
         if (!this._hass)
@@ -802,7 +900,6 @@ class SigenergyFlowCard extends HTMLElement {
         this._text('phaseMode', !this.config.show_phase_mode ? '' : phase === 'on' ? 'Power Per Phase Mode' : phase === 'off' ? 'Total Power Mode' : '');
         const acTotal = kw('ac_charger_total_energy');
         this._text('acTotal', !this.config.show_lifetime || acTotal === null ? '' : `${this._kwh(acTotal)} consumed`);
-        this._parts('acLifetime', !this.config.show_lifetime ? [] : this._lifetime(kw('ac_charger_lifetime_charged_energy'), kw('ac_charger_lifetime_discharged_energy')));
         this._parts('dcLifetime', !this.config.show_lifetime ? [] : this._lifetime(kw('dc_charger_lifetime_charged_energy'), kw('dc_charger_lifetime_discharged_energy')));
         this._text('ac', this._power(ac));
         this._text('dc', this._power(dc));
@@ -887,6 +984,201 @@ class SigenergyFlowCard extends HTMLElement {
         this._text('sunrise', `Sunrise ${fmt(fromJulian(Jrise))}`);
         this._text('sunset', `Sunset ${fmt(fromJulian(Jset))}`);
         this._sunTimes = { rise: fromJulian(Jrise).getTime(), set: fromJulian(Jset).getTime() };
+    }
+    _wireStatistics() {
+        const stat = this._stat ??= { range: 'Day', date: new Date(), selection: null, flows: null };
+        this._id('statRange').value = stat.range;
+        this._id('statRange').addEventListener('change', event => {
+            Object.assign(stat, { range: event.target.value, date: new Date(), selection: null });
+            this._loadStatistics();
+        });
+        const step = direction => {
+            Object.assign(stat, { date: statStep(stat.range, stat.date, direction), selection: null });
+            this._loadStatistics();
+        };
+        this._id('statPrev').addEventListener('click', () => step(-1));
+        this._id('statNext').addEventListener('click', () => step(1));
+        const chart = this._id('statChart');
+        const choose = target => {
+            const node = target.closest?.('[data-side]');
+            if (!node) return;
+            const { side } = node.dataset, index = Number(node.dataset.index);
+            stat.selection = stat.selection?.side === side && stat.selection.index === index ? null : { side, index };
+            this._drawStat();
+        };
+        chart.addEventListener('click', event => choose(event.target));
+        chart.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            choose(event.target);
+        });
+        chart._redraw = () => this._drawStat();
+        this._id('statCopy').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(`${this._statJson}\n${this._id('statDebug').textContent}`);
+                this._text('statCopied', 'Copied');
+            } catch (error) {
+                this._text('statCopied', 'Copy failed: use Download');
+            }
+        });
+        this._statControls();
+        this._drawStat();
+    }
+    _statCurrent() {
+        return this._stat.range === 'Lifetime' || statWindow(this._stat.range, this._stat.date)[1] > new Date();
+    }
+    _statControls() {
+        const { range, date } = this._stat, lifetime = range === 'Lifetime';
+        this._text('statDate', statLabel(range, date));
+        this._id('statPrev').disabled = lifetime;
+        this._id('statNext').disabled = lifetime || statWindow(range, statStep(range, date, 1))[0] > new Date();
+    }
+    // Energy per interval comes from the lifetime counters' recorder statistics; each interval is split into
+    // flows between sources and consumers and the splits are added up.
+    async _loadStatistics() {
+        const stat = this._stat;
+        if (!this._hass || !stat || !this.config.show_energy_statistics) return;
+        this._statControls();
+        if (typeof this._hass.callWS !== 'function') {
+            this._text('statStatus', 'Statistics unavailable');
+            return;
+        }
+        // The load has no sensor: it is what the sources supply beyond the other consumers.
+        const pick = defs => defs.map(def => { if (!def.key) return 'residual'; const id = this._ent(def.key); return this._has(id) ? id : null; });
+        const sourceIds = pick(STAT_SOURCES), sinkIds = pick(STAT_SINKS);
+        const ids = [...new Set([...sourceIds, ...sinkIds].filter(id => id && id !== 'residual'))];
+        if (!ids.length) {
+            stat.flows = null;
+            this._drawStat();
+            this._text('statStatus', 'No energy statistics sensors');
+            return;
+        }
+        const request = this._statRequest = (this._statRequest ?? 0) + 1;
+        this._text('statStatus', 'Loading…');
+        const [start, end] = statWindow(stat.range, stat.date);
+        const fetchStatistics = period => this._hass.callWS({ type: 'recorder/statistics_during_period', start_time: start.toISOString(), end_time: end.toISOString(), statistic_ids: ids, period, types: ['change'] });
+        try {
+            let period = STAT_PERIODS[stat.range], result = await fetchStatistics(period);
+            if (period === '5minute' && !ids.some(id => result[id]?.length)) result = await fetchStatistics(period = 'hour');
+            if (request !== this._statRequest) return;
+            const buckets = new Map();
+            for (const id of ids) {
+                const factor = this._factor(id);
+                for (const row of result[id] ?? []) {
+                    const time = typeof row.start === 'number' ? row.start : Date.parse(row.start);
+                    if (!buckets.has(time)) buckets.set(time, {});
+                    buckets.get(time)[id] = Math.max(0, Number(row.change) * factor || 0);
+                }
+            }
+            const flows = STAT_SOURCES.map(() => STAT_SINKS.map(() => 0)), raw = {};
+            for (const values of buckets.values()) {
+                const read = id => id ? values[id] ?? 0 : 0;
+                for (const [id, value] of Object.entries(values)) raw[id] = (raw[id] ?? 0) + value;
+                const sources = sourceIds.map(read), sinks = sinkIds.map(read), load = STAT_SINKS.findIndex(def => !def.key);
+                sinks[load] = Math.max(0, sources.reduce((a, b) => a + b, 0) - sinks.reduce((a, b, j) => a + (j === load ? 0 : b), 0));
+                allocateFlows(sources, sinks).forEach((row, i) => row.forEach((v, j) => { flows[i][j] += v; }));
+            }
+            Object.assign(stat, { flows, sourceIds, sinkIds });
+            const debug = this._id('statDebug');
+            debug.hidden = !this.config.debug_energy_statistics;
+            debug.textContent = Object.entries(raw).map(([id, value]) => `${id}: ${value.toFixed(2)} kWh`).join('\n');
+            const download = this._id('statDownload');
+            this._id('statData').hidden = debug.hidden;
+            if (!debug.hidden) {
+                URL.revokeObjectURL(download.href);
+                const data = { range: stat.range, period, start: start.toISOString(), end: end.toISOString(), ids, sourceIds, sinkIds, flows, buckets: [...buckets].sort((a, b) => a[0] - b[0]).map(([time, values]) => ({ time, ...values })) };
+                this._statJson = JSON.stringify(data);
+                download.href = URL.createObjectURL(new Blob([this._statJson], { type: 'application/json' }));
+            }
+            this._text('statStatus', buckets.size ? `Estimated split · ${{ '5minute': '5-minute', hour: 'hourly', day: 'daily' }[period]} data` : 'No recorded energy in this range');
+            this._drawStat();
+        } catch (error) {
+            if (request !== this._statRequest) return;
+            stat.flows = null;
+            this._drawStat();
+            this._text('statStatus', 'Statistics unavailable');
+        }
+    }
+    _drawStat() {
+        const stat = this._stat, svg = this._id('statChart');
+        if (!svg || !stat) return;
+        const summary = this._id('statSummary'), cards = this._id('statCards');
+        const clear = () => {
+            svg.replaceChildren();
+            svg.removeAttribute('viewBox');
+            svg.style.height = '';
+            summary.hidden = true;
+            cards.replaceChildren();
+        };
+        const { flows } = stat;
+        if (!flows) return clear();
+        const total = (list, i) => list === STAT_SOURCES ? flows[i].reduce((a, b) => a + b, 0) : flows.reduce((a, row) => a + row[i], 0);
+        const nodes = (list, ids) => list.map((def, i) => ({ ...def, i, total: total(list, i), shown: !!ids[i] })).filter(node => node.shown);
+        const left = nodes(STAT_SOURCES, stat.sourceIds), right = nodes(STAT_SINKS, stat.sinkIds);
+        const sum = list => list.reduce((a, node) => a + node.total, 0);
+        const most = Math.max(sum(left), sum(right));
+        if (!(most > 0)) return clear();
+        const kWh = v => v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const width = Math.max(280, svg.clientWidth || 600), compact = width < 520;
+        const nodeWidth = compact ? 78 : 124, gap = 8, scale = ((compact ? 300 : 330) - gap * (Math.max(left.length, right.length) - 1)) / most;
+        const place = list => {
+            let y = 0;
+            for (const node of list) {
+                node.h = node.total > 0 ? Math.max(52, node.total * scale) : 22;
+                node.y = y;
+                y += node.h + gap;
+            }
+            return y - gap;
+        };
+        const height = Math.max(place(left), place(right)) + 4;
+        const xLeft = nodeWidth, xRight = width - nodeWidth, middle = (xLeft + xRight) / 2;
+        const selection = stat.selection && (stat.selection.side === 'src' ? left : right).find(node => node.i === stat.selection.index) ? stat.selection : null;
+        const used = new Map(), ribbons = [];
+        for (const a of left) for (const b of right) {
+            const value = flows[a.i][b.i];
+            if (!(value > 0)) continue;
+            // Each end covers its node in proportion, so a node taller than its energy (minimum height) is still filled.
+            const heightA = value / a.total * a.h, heightB = value / b.total * b.h, y0 = a.y + (used.get(a) ?? 0), y1 = b.y + (used.get(b) ?? 0);
+            used.set(a, (used.get(a) ?? 0) + heightA);
+            used.set(b, (used.get(b) ?? 0) + heightB);
+            const related = selection && (selection.side === 'src' ? a.i === selection.index : b.i === selection.index);
+            ribbons.push({ a, b, value, heightA, heightB, y0, y1, related });
+        }
+        const labels = ribbons.filter(r => r.related).map(r => ({ r, y: selection.side === 'src' ? r.y0 + r.heightA / 2 : r.y1 + r.heightB / 2 })).sort((p, q) => p.y - q.y);
+        labels.forEach((label, i) => { if (i) label.y = Math.max(label.y, labels[i - 1].y + 13); });
+        const touched = new Set(ribbons.filter(r => r.related).flatMap(r => [r.a, r.b]));
+        const column = (list, side, x) => list.map(node => {
+            const chosen = selection?.side === side && selection.index === node.i;
+            const dim = selection && !chosen && !touched.has(node) ? ' dim' : '';
+            // Opposite the selected node, a connected node shows just what it exchanged with the selection.
+            const exchanged = selection && selection.side !== side && touched.has(node) ? (side === 'snk' ? flows[selection.index][node.i] : flows[node.i][selection.index]) : null;
+            const value = kWh(exchanged ?? node.total), size = Math.min(15, (nodeWidth - 14) / (value.length * .6));
+            const text = (exchanged ?? node.total) > 0
+                ? `<text class="sktext" x="${x + 8}" y="${node.y + 15}" font-size="11" font-weight="700">${node.name}</text><text class="sktext" x="${x + 8}" y="${node.y + 32}" font-size="${size.toFixed(1)}" font-weight="700">${value}</text><text class="sktext" x="${x + 8}" y="${node.y + 45}" font-size="11">kWh</text>${selection || node.h < 76 ? '' : `<text class="sktext" x="${x + 8}" y="${node.y + node.h - 8}" font-size="11">${(node.total / sum(list) * 100).toFixed(2)}%</text>`}`
+                : `<text class="sktext" x="${x + 8}" y="${node.y + 15}" font-size="${compact ? 10 : 11}" font-weight="700">${node.name} 0 kWh</text>`;
+            return `<g class="skn${dim}" data-side="${side}" data-index="${node.i}" tabindex="0" role="button" aria-pressed="${chosen}" aria-label="${node.name} ${value} kWh"><rect class="skbox" x="${x}" y="${node.y}" width="${nodeWidth}" height="${node.h}" rx="6" fill="${node.color}"${chosen ? ' stroke="var(--fg)" stroke-width="2"' : ''}/>${text}</g>`;
+        }).join('');
+        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        svg.style.height = `${height}px`;
+        svg.innerHTML = `<defs>${ribbons.map(r => `<linearGradient id="skg${r.a.i}-${r.b.i}"><stop offset="0" style="stop-color:${r.a.color}"/><stop offset="1" style="stop-color:${r.b.color}"/></linearGradient>`).join('')}</defs>`
+            + ribbons.map(r => `<path class="skr${selection ? (r.related ? ' on' : ' dim') : ''}" fill="url(#skg${r.a.i}-${r.b.i})" d="M${xLeft} ${r.y0} C${middle} ${r.y0} ${middle} ${r.y1} ${xRight} ${r.y1} L${xRight} ${r.y1 + r.heightB} C${middle} ${r.y1 + r.heightB} ${middle} ${r.y0 + r.heightA} ${xLeft} ${r.y0 + r.heightA} Z"/>`).join('')
+            + labels.map(({ r, y }) => selection.side === 'src'
+                ? `<text class="skpct" x="${xLeft + 6}" y="${y + 4}">${(r.value / r.a.total * 100).toFixed(2)}%</text>`
+                : `<text class="skpct" text-anchor="end" x="${xRight - 6}" y="${y + 4}">${(r.value / r.b.total * 100).toFixed(2)}%</text>`).join('')
+            + column(left, 'src', 0) + column(right, 'snk', width - nodeWidth);
+        if (!selection) {
+            summary.hidden = true;
+            cards.replaceChildren();
+            return;
+        }
+        const chosen = (selection.side === 'src' ? left : right).find(node => node.i === selection.index);
+        const others = selection.side === 'src' ? right : left;
+        summary.hidden = false;
+        summary.innerHTML = `<b>${kWh(chosen.total)}</b><small>kWh</small><div>${chosen.caption}</div>`;
+        cards.innerHTML = others.map(other => {
+            const value = selection.side === 'src' ? flows[chosen.i][other.i] : flows[other.i][chosen.i];
+            return value > 0 ? `<div class="statcard"><b>${(value / chosen.total * 100).toFixed(2)}%</b><span>${other.caption}</span><span>${kWh(value)} kWh</span></div>` : '';
+        }).join('');
     }
     async _loadHistory() {
         if (!this._hass || this._loading)

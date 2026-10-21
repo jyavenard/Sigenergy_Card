@@ -2,6 +2,11 @@
 
 Each release is tagged `vN` on GitHub; HACS offers the newest release as the update.
 
+## v47
+
+- New **Energy statistics** panel: the portal's source-to-consumer diagram for a day, week, month, year or lifetime, with an estimated split of each flow, percentages on selection and the same values as text. It reads the lifetime energy counters through Home Assistant long-term statistics (new `stat_*` entities keys); consumers or sources without a sensor, such as EVDC, are left out. Hide it with `show_energy_statistics: false`. The split between sources and consumers is fitted to the Sigenergy app's own figures; `debug_energy_statistics: true` lists the recorded sensor totals and offers the recorded data to copy or download.
+- The AC charger shows only its own energy consumed. The lifetime charged and discharged lines for the AC charger, which repeated it, are removed along with their `ac_charger_lifetime_charged_energy` and `ac_charger_lifetime_discharged_energy` keys. The DC charger keeps its lifetime line.
+
 ## v46
 
 - Day style: the fades at the photo's edges are dark instead of white, so the white readings stay legible over the pale sky, foliage and pavement (the AC charger lines in particular), and the text shadow has a tighter dark edge. The small labels and status lines are slightly heavier.

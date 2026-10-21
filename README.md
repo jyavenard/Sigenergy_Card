@@ -67,6 +67,25 @@ Between sunset and sunrise (or with `style: night`) the card switches to the dar
   </tr>
 </table>
 
+### Energy statistics
+
+The Energy statistics panel, with a source selected (SOLAR, desktop day) and a consumer selected (LOAD, desktop night); on a phone it fits the width (day with GRID selected, and night with nothing selected):
+
+![Energy statistics, desktop day](docs/screenshots/stat-desk-day.png)
+
+![Energy statistics, desktop night](docs/screenshots/stat-desk-night.png)
+
+<table>
+  <tr>
+    <th>Day, GRID selected</th>
+    <th>Night</th>
+  </tr>
+  <tr>
+    <td valign="top"><img src="docs/screenshots/stat-phone-day.png" alt="Energy statistics on a phone, day" width="240"></td>
+    <td valign="top"><img src="docs/screenshots/stat-phone-night.png" alt="Energy statistics on a phone, night" width="240"></td>
+  </tr>
+</table>
+
 ## Requirements
 
 All data is read locally over Modbus by the [Sigenergy Local Modbus](https://github.com/TypQxQ/Sigenergy-Local-Modbus) integration, which installs through HACS ([open it in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=TypQxQ&repository=Sigenergy-Local-Modbus&category=integration)). Install and configure it first; the card uses its default entity IDs (`sensor.sigen_plant_*`, `sensor.sigen_inverter_*`, `sensor.sigen_ac_charger_*`).
@@ -123,8 +142,10 @@ All options are optional.
 | `home_entities` | `[]` | Power entities listed when tapping **HOME**. Without it, HOME is a plain label. |
 | `ac_charger_soc` | none | Battery level entity of the vehicle on the AC charger. Same as `entities.ac_charger_vehicle_soc`. |
 | `ac_charger_range` | none | Range entity of that vehicle. Only shown together with `ac_charger_soc`. Same as `entities.ac_charger_vehicle_range`. |
-| `show_lifetime` | `true` | Show the AC charger's energy consumed and each charger's lifetime energy charged and discharged. |
+| `show_lifetime` | `true` | Show the AC charger's energy consumed and the DC charger's lifetime energy charged and discharged. |
 | `show_phase_mode` | `false` | Show the phase power mode under **GRID**. |
+| `show_energy_statistics` | `true` | Show the **Energy statistics** panel (see [Energy statistics](#energy-statistics)). |
+| `debug_energy_statistics` | `false` | List, under the Energy statistics panel, the energy each statistics sensor recorded over the period (to check the sensors against another source). |
 | `style` | `auto` | Artwork and theme: `day`, `night` or `auto` (day between sunrise and sunset). |
 
 ### Example
@@ -184,8 +205,6 @@ Power values can be in W, kW or MW and energy values in Wh, kWh or MWh; the card
 | `ac_charger_power` | `sensor.sigen_ac_charger_charging_power` | AC charger value, chart; the AC charger only appears if this exists |
 | `ac_charger_state` | `sensor.sigen_ac_charger_system_state` | AC charger state text |
 | `ac_charger_total_energy` | `sensor.sigen_ac_charger_total_energy_consumed` | AC charger energy consumed |
-| `ac_charger_lifetime_charged_energy` | `sensor.sigen_plant_total_charged_energy_of_the_evac` | AC charger lifetime line (↓ charged) |
-| `ac_charger_lifetime_discharged_energy` | `sensor.sigen_plant_total_discharged_energy_of_the_evac` | AC charger lifetime line (↑ discharged, hidden while 0) |
 | `ac_charger_vehicle_soc` | none | Vehicle battery level on the AC charger |
 | `ac_charger_vehicle_range` | none | Vehicle range on the AC charger |
 | `dc_charger_power` | `sensor.sigen_inverter_dc_charger_output_power` | DC charger value, chart; the DC charger only appears if this exists |
@@ -202,6 +221,12 @@ Power values can be in W, kW or MW and energy values in Wh, kWh or MWh; the card
 | `daily_grid_export_energy` | `sensor.sigen_plant_daily_grid_export_energy` | Grid exported tile |
 | `daily_battery_charge_energy` | `sensor.sigen_plant_daily_battery_charge_energy`, fallback `sensor.sigen_inverter_daily_charge_energy` | Battery charged tile |
 | `daily_battery_discharge_energy` | `sensor.sigen_plant_daily_battery_discharge_energy`, fallback `sensor.sigen_inverter_daily_discharge_energy` | Battery discharged tile |
+| `stat_pv` | `sensor.sigen_plant_total_pv_generation` | Energy statistics: solar |
+| `stat_battery_discharge` | `sensor.sigen_plant_total_discharged_energy_of_the_ess` | Energy statistics: battery as a source |
+| `stat_battery_charge` | `sensor.sigen_plant_total_charged_energy_of_the_ess` | Energy statistics: battery as a consumer |
+| `stat_grid_import` | `sensor.sigen_plant_total_imported_energy` | Energy statistics: grid as a source |
+| `stat_grid_export` | `sensor.sigen_plant_total_exported_energy` | Energy statistics: grid as a consumer |
+| `stat_evac_charge` | `sensor.sigen_plant_total_charged_energy_of_the_evac`, fallback `sensor.sigen_ac_charger_total_energy_consumed` | Energy statistics: AC charger |
 
 Example for another brand:
 
@@ -238,6 +263,12 @@ pv_strings:
     daily_energy: false
     accumulated_energy: false
 ```
+
+### Energy statistics
+
+The **Energy statistics** panel under the scene shows where energy came from and where it went: a diagram from sources (solar, battery, EVDC, grid import) to consumers (battery, EVDC, load, EVAC, grid export), for a day, week, month, year or the whole lifetime. Use the arrows to move between periods and the selector to change the range. Select a source to see how its energy was shared among the consumers, or a consumer to see its sources, with the percentages and kWh also listed under the diagram. Select it again to go back.
+
+Home Assistant only records totals (solar, grid, battery, load, chargers), not which source charged which consumer, so the split is an **estimate**. Each interval of the period (5 minutes for a day, an hour for a week or month, a day for a year or lifetime) is split between sources and consumers, never feeding a device from itself, with each source favouring some consumers over others (for instance solar favours the batteries and EVDC over the house), and the intervals are added up. The preferences are fitted to the flows the Sigenergy app showed for one system, and reproduce them within a few hundredths of a kWh on that data; other systems may differ somewhat. The totals come from the lifetime energy counters' long-term statistics, so the panel needs the Home Assistant recorder and these sensors, which the card reads from `entities` (`stat_*`, plus `dc_charger_lifetime_charged_energy` and `dc_charger_lifetime_discharged_energy` for EVDC). **Load** has no sensor: like the Sigenergy portal, it is what the sources supplied beyond the other consumers. A source or consumer whose sensor does not exist (the EVDC and EVAC totals are disabled by default in the Sigenergy integration) is left out. Set `show_energy_statistics: false` to hide the panel.
 
 ### PV strings
 
@@ -311,7 +342,7 @@ Each charger's reading and chart series only appear if its power entity exists, 
 Unless `show_lifetime: false`, the card also shows under each charger's power:
 
 - AC charger: energy consumed (`sensor.sigen_ac_charger_total_energy_consumed`).
-- Both chargers: lifetime energy, e.g. `Lifetime ↓ 3,456.7 kWh · ↑ 12.3 kWh` (charged, discharged), on two lines when the card is too small to fit them on one. The discharged part only appears for bidirectional (V2G / V2H) charging, i.e. while it is above 0.
+- DC charger: lifetime energy, e.g. `Lifetime ↓ 3,456.7 kWh · ↑ 12.3 kWh` (charged, discharged), on two lines when the card is too small to fit them on one. The discharged part only appears for bidirectional (V2G / V2H) charging, i.e. while it is above 0.
 
 Each line is hidden when its entities do not exist.
 
