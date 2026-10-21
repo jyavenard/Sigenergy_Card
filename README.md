@@ -140,6 +140,8 @@ All options are optional.
 | `ac_charger_soc` | none | Battery level entity of the vehicle on the AC charger. Same as `entities.ac_charger_vehicle_soc`. |
 | `ac_charger_range` | none | Range entity of that vehicle. Only shown together with `ac_charger_soc`. Same as `entities.ac_charger_vehicle_range`. |
 | `show_lifetime` | `true` | Show the AC charger's energy consumed and the DC charger's lifetime energy charged and discharged. |
+| `title` | `Sigenergy` | First part of the card heading. |
+| `name` | `My Home` | Second part of the heading (your home's name). An empty value hides that part. |
 | `show_phase_mode` | `false` | Show the phase power mode under **GRID**. |
 | `show_energy_statistics` | `true` | Show the **Energy statistics** panel (see [Energy statistics](#energy-statistics)). |
 | `debug_energy_statistics` | `false` | List, under the Energy statistics panel, the energy each statistics sensor recorded over the period (to check the sensors against another source). |

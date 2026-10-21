@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/* Sigenergy Flow Card v49 — standalone Home Assistant Lovelace custom card */
+/* Sigenergy Flow Card v50 — standalone Home Assistant Lovelace custom card */
 
 // Scene coordinates: the house photo (1676x557 units) sits between a band above it for the SOLAR and HOME
 // readings and a band below it for SigenStor and GRID. tools/embed-artwork.py builds both bands from
@@ -245,6 +245,8 @@ class SigenergyFlowCard extends HTMLElement {
             home_entities: [],
             show_lifetime: true,
             show_phase_mode: false,
+            title: 'Sigenergy',
+            name: 'My Home',
             show_energy_statistics: true,
             debug_energy_statistics: false,
             ...config
@@ -371,7 +373,7 @@ class SigenergyFlowCard extends HTMLElement {
       .home-total{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:var(--icon)}.home-total b{font-size:22px;color:var(--fg)}
       @media(max-width:800px){.layout{grid-template-columns:1fr}}
     </style>
-    <ha-card><div class="header"><div><div class="heading">Sigenergy · My Home</div><div class="sub">Live power flow</div></div><div class="sub" id="stamp"></div></div>
+    <ha-card><div class="header"><div><div class="heading" id="heading"></div><div class="sub">Live power flow</div></div><div class="sub" id="stamp"></div></div>
       <div class="layout"><section class="scene" id="scene"><div class="plane" id="plane">
         <svg viewBox="0 0 ${SCENE.width} ${SCENE.height}" preserveAspectRatio="none" aria-label="Energy flow between equipment">
           <defs>
@@ -434,6 +436,7 @@ class SigenergyFlowCard extends HTMLElement {
       <section class="panel"><div class="loads" id="homeLoads"></div></section>
     </div></dialog>`;
         this.root = this.shadowRoot;
+        this._id('heading').textContent = [this.config.title, this.config.name].filter(Boolean).join(' · ');
         this._sceneFile = 'house_day.png';
         this._loadRows = new Map();
         this._loadsEmpty = null;
@@ -808,7 +811,7 @@ class SigenergyFlowCard extends HTMLElement {
         if (!this._chartObserver) this._observeCharts();
         if (!this._flowFrame) this._startFlowAnimation();
         this._statTimer ??= setInterval(() => { if (this._statCurrent()) this._loadStatistics(); }, 300000);
-        this._historyTimer ??= setInterval(() => { if (!document.hidden) this._loadHistory(); }, 60000);
+        this._historyTimer ??= setInterval(() => { if (!document.hidden) this._advanceChart(); }, 30000);
     }
     _startFlowAnimation() {
         if (this._flowFrame) cancelAnimationFrame(this._flowFrame);
@@ -1235,7 +1238,7 @@ class SigenergyFlowCard extends HTMLElement {
         };
         const series = this._series(data, specs.map(s => s.id)).map((points, i) => {
             // Scale W/MW to kW, flip export, and apply battery_power_invert to the battery series.
-            const k = this._factor(specs[i].id) * (specs[i].negate ? -1 : 1) * (specs[i].key === 'battery_power' ? this._batterySign() : 1);
+            const k = this._chartFactor(specs[i]);
             return {
             points: k === 1 ? points : points.map(p => ({ t: p.t, v: p.v * k })),
             color: specs[i].color,
@@ -1243,8 +1246,23 @@ class SigenergyFlowCard extends HTMLElement {
             note: notes[specs[i].name]
         };
         });
+        this._chartLive = { specs, series };
         if (!this._showChart(this._id('chart'), series, start, true))
             this._text('chartStatus', 'No recorded power history today');
+    }
+    _chartFactor(spec) {
+        return this._factor(spec.id) * (spec.negate ? -1 : 1) * (spec.key === 'battery_power' ? this._batterySign() : 1);
+    }
+    // Extends the drawn series with the current sensor values and redraws just the chart.
+    _advanceChart() {
+        const live = this._chartLive;
+        if (!live || !this._hass) return;
+        const t = Date.now();
+        live.specs.forEach((spec, i) => {
+            const v = this._num(spec.id);
+            if (v !== null) live.series[i].points.push({ t, v: v * this._chartFactor(spec) });
+        });
+        this._id('chart')._redraw?.();
     }
     // Draws now and again whenever the chart is resized; returns whether any series has data.
     _showChart(svg, series, start, signed, top) {
