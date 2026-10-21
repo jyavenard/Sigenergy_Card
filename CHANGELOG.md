@@ -2,6 +2,10 @@
 
 Each release is tagged `vN` on GitHub; HACS offers the newest release as the update.
 
+## v49
+
+- The Power metrics chart refreshes every minute while the page is open (it only loaded once, so it needed a page reload to move on). The reload is skipped while the browser tab is hidden.
+
 ## v48
 
 - The card heading reads "Sigenergy · My Home" (it said "SigenEnergy").

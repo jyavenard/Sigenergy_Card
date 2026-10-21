@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/* Sigenergy Flow Card v48 — standalone Home Assistant Lovelace custom card */
+/* Sigenergy Flow Card v49 — standalone Home Assistant Lovelace custom card */
 
 // Scene coordinates: the house photo (1676x557 units) sits between a band above it for the SOLAR and HOME
 // readings and a band below it for SigenStor and GRID. tools/embed-artwork.py builds both bands from
@@ -808,6 +808,7 @@ class SigenergyFlowCard extends HTMLElement {
         if (!this._chartObserver) this._observeCharts();
         if (!this._flowFrame) this._startFlowAnimation();
         this._statTimer ??= setInterval(() => { if (this._statCurrent()) this._loadStatistics(); }, 300000);
+        this._historyTimer ??= setInterval(() => { if (!document.hidden) this._loadHistory(); }, 60000);
     }
     _startFlowAnimation() {
         if (this._flowFrame) cancelAnimationFrame(this._flowFrame);
@@ -881,6 +882,8 @@ class SigenergyFlowCard extends HTMLElement {
         this._flowFrame = null;
         clearInterval(this._statTimer);
         this._statTimer = null;
+        clearInterval(this._historyTimer);
+        this._historyTimer = null;
     }
     _update() {
         if (!this._hass)
