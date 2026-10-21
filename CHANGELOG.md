@@ -2,6 +2,13 @@
 
 Each release is tagged `vN` on GitHub; HACS offers the newest release as the update.
 
+## v48
+
+- The card heading reads "Sigenergy · My Home" (it said "SigenEnergy").
+- The card is licensed under the Apache License 2.0 (`LICENSE`, and a header in `sigenergy-flow-card.js`).
+- The repository is now named `sigenergy-flow-card`, matching the card file, so HACS installs it to `/hacsfiles/sigenergy-flow-card/`. If the old `/hacsfiles/Sigenergy_Card/` resource is still listed, remove it and let HACS add the new one.
+- README: HACS install button, and refreshed screenshots.
+
 ## v47
 
 - New **Energy statistics** panel: the portal's source-to-consumer diagram for a day, week, month, year or lifetime, with an estimated split of each flow, percentages on selection and the same values as text. It reads the lifetime energy counters through Home Assistant long-term statistics (new `stat_*` entities keys); consumers or sources without a sensor, such as EVDC, are left out. Hide it with `show_energy_statistics: false`. The split between sources and consumers is fitted to the Sigenergy app's own figures; `debug_energy_statistics: true` lists the recorded sensor totals and offers the recorded data to copy or download.

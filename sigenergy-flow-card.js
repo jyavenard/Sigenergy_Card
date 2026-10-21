@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/* Sigenergy Flow Card v47 — standalone Home Assistant Lovelace custom card */
+/* Sigenergy Flow Card v48 — standalone Home Assistant Lovelace custom card */
 
 // Scene coordinates: the house photo (1676x557 units) sits between a band above it for the SOLAR and HOME
 // readings and a band below it for SigenStor and GRID. tools/embed-artwork.py builds both bands from
@@ -371,7 +371,7 @@ class SigenergyFlowCard extends HTMLElement {
       .home-total{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:var(--icon)}.home-total b{font-size:22px;color:var(--fg)}
       @media(max-width:800px){.layout{grid-template-columns:1fr}}
     </style>
-    <ha-card><div class="header"><div><div class="heading">SigenEnergy · My Home</div><div class="sub">Live power flow</div></div><div class="sub" id="stamp"></div></div>
+    <ha-card><div class="header"><div><div class="heading">Sigenergy · My Home</div><div class="sub">Live power flow</div></div><div class="sub" id="stamp"></div></div>
       <div class="layout"><section class="scene" id="scene"><div class="plane" id="plane">
         <svg viewBox="0 0 ${SCENE.width} ${SCENE.height}" preserveAspectRatio="none" aria-label="Energy flow between equipment">
           <defs>
