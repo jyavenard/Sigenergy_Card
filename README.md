@@ -87,10 +87,16 @@ The artwork is built into `sigenergy-flow-card.js`, so the card is a single file
 
 ### HACS (recommended)
 
+The [Home Assistant Community Store (HACS)](https://hacs.xyz) is a custom integration that provides a UI to manage custom elements such as this card in Home Assistant. You first need to [install and configure](https://hacs.xyz/docs/use/) it before following these instructions.
+
+[![Open your Home Assistant instance and open this repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=jyavenard&repository=sigenergy-flow-card&category=plugin)
+
+The button opens the card in your own Home Assistant's HACS (it offers to add the repository as a **Dashboard** repository if it is not there yet). Or do the same by hand:
+
 1. In Home Assistant, open **HACS**, then **⋮ → Custom repositories**.
-2. Add `https://github.com/jyavenard/Sigenergy_Card` with type **Dashboard**.
+2. Add `https://github.com/jyavenard/sigenergy-flow-card` with type **Dashboard**.
 3. Search HACS for **Sigenergy Flow Card**, open it and select **Download**.
-4. Reload the browser when HACS asks. HACS registers the dashboard resource (`/hacsfiles/Sigenergy_Card/sigenergy-flow-card.js`) for you.
+4. Reload the browser when HACS asks. HACS registers the dashboard resource (`/hacsfiles/sigenergy-flow-card/sigenergy-flow-card.js`) for you.
 5. Add the card to a dashboard (**Edit dashboard → Add card → Manual**):
 
    ```yaml
@@ -99,7 +105,7 @@ The artwork is built into `sigenergy-flow-card.js`, so the card is a single file
 
 HACS offers an update whenever a new release is published on GitHub (see [CHANGELOG.md](CHANGELOG.md)); download it and reload the browser.
 
-If your dashboards are configured in YAML mode, HACS cannot register the resource; add it yourself as below, with the URL `/hacsfiles/Sigenergy_Card/sigenergy-flow-card.js`.
+If your dashboards are configured in YAML mode, HACS cannot register the resource; add it yourself as below, with the URL `/hacsfiles/sigenergy-flow-card/sigenergy-flow-card.js`.
 
 ### Manual
 
@@ -356,6 +362,10 @@ Small Python scripts in `tools/` that query the system directly over Modbus TCP 
 - `tools/sigen_evac.py`: scans Modbus device IDs to find the AC charger (EVAC) and prints its total energy consumed.
 
 The card itself reads everything from Home Assistant entities (battery level, phase power mode and AC charger energy included), so it does not need these scripts; they are for use outside Home Assistant.
+
+## License
+
+Copyright 2025-2026 Jean-Yves Avenard. Licensed under the [Apache License, Version 2.0](LICENSE).
 
 ## Acknowledgements
 
