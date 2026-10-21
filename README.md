@@ -23,6 +23,10 @@ Main view, with the power metrics overlay shown by hovering over the chart:
 
 ![Desktop main view](docs/screenshots/desktop-main.png)
 
+The Energy statistics panel on the main view, with SOLAR selected to show where its energy went:
+
+![Energy statistics](docs/screenshots/stat-desk-day.png)
+
 Tapping **SOLAR**:
 
 ![Desktop PV strings](docs/screenshots/desktop-solar.png)
@@ -40,12 +44,14 @@ Tapping the stored energy under **Battery level**:
 <table>
   <tr>
     <th>Main view</th>
+    <th>Energy statistics</th>
     <th>SOLAR</th>
     <th>HOME</th>
     <th>Battery energy</th>
   </tr>
   <tr>
     <td><img src="docs/screenshots/iphone-main.png" alt="iPhone main view" width="200"></td>
+    <td valign="top"><img src="docs/screenshots/stat-phone-day.png" alt="iPhone energy statistics, GRID selected" width="200"></td>
     <td valign="top"><img src="docs/screenshots/iphone-solar.png" alt="iPhone PV strings" width="200"></td>
     <td valign="top"><img src="docs/screenshots/iphone-home.png" alt="iPhone home power usage" width="200"></td>
     <td valign="top"><img src="docs/screenshots/iphone-energy.png" alt="iPhone battery energy" width="200"></td>
@@ -65,24 +71,9 @@ Between sunset and sunrise (or with `style: night`) the card switches to the dar
     <td valign="top"><img src="docs/screenshots/desktop-main-night.png" alt="Desktop main view at night" width="720"></td>
     <td valign="top"><img src="docs/screenshots/iphone-main-night.png" alt="iPhone main view at night" width="200"></td>
   </tr>
-</table>
-
-### Energy statistics
-
-The Energy statistics panel, with a source selected (SOLAR, desktop day) and a consumer selected (LOAD, desktop night); on a phone it fits the width (day with GRID selected, and night with nothing selected):
-
-![Energy statistics, desktop day](docs/screenshots/stat-desk-day.png)
-
-![Energy statistics, desktop night](docs/screenshots/stat-desk-night.png)
-
-<table>
   <tr>
-    <th>Day, GRID selected</th>
-    <th>Night</th>
-  </tr>
-  <tr>
-    <td valign="top"><img src="docs/screenshots/stat-phone-day.png" alt="Energy statistics on a phone, day" width="240"></td>
-    <td valign="top"><img src="docs/screenshots/stat-phone-night.png" alt="Energy statistics on a phone, night" width="240"></td>
+    <td valign="top"><img src="docs/screenshots/stat-desk-night.png" alt="Desktop energy statistics at night, LOAD selected" width="720"></td>
+    <td valign="top"><img src="docs/screenshots/stat-phone-night.png" alt="iPhone energy statistics at night" width="200"></td>
   </tr>
 </table>
 
