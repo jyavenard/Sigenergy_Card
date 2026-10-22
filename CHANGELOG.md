@@ -2,6 +2,10 @@
 
 Each release is tagged `vN` on GitHub; HACS offers the newest release as the update.
 
+## v51
+
+- The flow lines follow the house's perspective: their runs converge on the vanishing points of the roof ridge and eaves and of the window and door edges, with verticals kept vertical. The inverter line stops at the gateway's edge, the branch to the glass doors ends halfway across the window frame, and the HOME and GRID leaders meet the lines where they end.
+
 ## v50
 
 - The Power metrics chart no longer refetches the day's history every minute. It loads once and then adds the current sensor values every 30 seconds, redrawing only the chart (skipped while the tab is hidden).

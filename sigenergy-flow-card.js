@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/* Sigenergy Flow Card v50 — standalone Home Assistant Lovelace custom card */
+/* Sigenergy Flow Card v51 — standalone Home Assistant Lovelace custom card */
 
 // Scene coordinates: the house photo (1676x557 units) sits between a band above it for the SOLAR and HOME
 // readings and a band below it for SigenStor and GRID. tools/embed-artwork.py builds both bands from
@@ -81,18 +81,19 @@ const DAILY_TILES = [
 ];
 
 // Lines end at each device's edge; SOLAR's and HOME's leaders join their flow lines on the house.
-// The home line runs level from the gateway, climbs beside the glass doors and follows the band above
-// them to HOME's leader; a short branch crosses to the doors.
+// Lines follow the house's perspective: runs converge on the vanishing points of the roof ridge and eaves (along
+// the front wall) and of the window and door edges (the glass-door side), plus verticals. The home line leaves the gateway along the front wall, turns along the
+// side wall, climbs beside the glass doors and ends at HOME's leader; a short branch crosses to the doors.
 const FLOWS = {
     solarFlow: 'M820 200 C820 226 775 224 775 250 V359',
-    inverterFlow: 'M787 433 H838.5',
-    homeFlow: 'M899 413 H1004 C1015 413 1024 405 1024 394 V262 C1024 253 1030 248.5 1040 247.5 L1110 242',
-    homeBranch: 'M1024 356 H1059',
-    gridFlow: 'M863 473 V482 C863 494 872 500 888 503 L1018 534',
+    inverterFlow: 'M787 419 L836.5 425.6',
+    homeFlow: 'M899.0 421.0 L968.1 429.8 Q975.0 430.7 981.8 429.1 L1027.2 418.4 Q1034.0 416.8 1034.0 409.8 L1034.0 242.2 Q1034.0 235.2 1041.0 234.4 L1110.0 226.5',
+    homeBranch: 'M1034 362 L1057 357.4',
+    gridFlow: 'M869.0 473.0 L869.0 492.0 Q869.0 499.0 875.9 500.1 L1030.0 526.0',
 };
 // A branch continues its parent's animation from the point where it leaves the parent's path.
 const BRANCHES = { homeBranch: 'homeFlow' };
-const LEADERS = ['M820 18 V200', 'M1110 18 V242', 'M712 498 V641', 'M1018 534 V641'];
+const LEADERS = ['M820 18 V200', 'M1110 18 V227', 'M712 498 V641', 'M1030 526 V641'];
 // Reading positions: [x, y, edge], where y is the reading's top or bottom edge. [lower] places the
 // SigenStor and GRID readings: the row's left edge, each reading's left edge, and the row's bottom edge.
 // [chargers] is the left edge of the charger readings, which are centred vertically: [wide, narrow].
